@@ -1,29 +1,56 @@
 AddCSLuaFile()
 
-ENT.Type = "anim"
-ENT.Base = "base_anim"
+ENT.Type 			= "anim"
+ENT.Base 			= "base_anim"
 
 ENT.Editable		= true
-ENT.PrintName		= "Undertale Bone"
-ENT.Spawnable 		= false
+ENT.PrintName		= "Replicator Worker"
+ENT.Spawnable 		= true
 ENT.AdminSpawnable 	= false
+ENT.Category		= "Stargate"
+ENT.AutomaticFrameAdvance = true 
 
-if( CLIENT ) then killicon.Add( "ent_undertale_bone_throw", "undertale/killicon_bone", color_white ) end
+//if( CLIENT ) then killicon.Add( "ent_undertale_bone_throw", "undertale/killicon_bone", color_white ) end
 
 function ENT:Initialize()
 	if( SERVER ) then
-		self:SetModel( "models/undertale/undertale_bone.mdl" )
-		self:SetTrigger( true )
+		self:SetModel( "models/stargate/replicators/replicator_worker.mdl" )
+		//self:SetTrigger( true )
 		self:PhysicsInit( SOLID_VPHYSICS )
 		self:SetMoveType( MOVETYPE_VPHYSICS )
 		self:SetSolid( SOLID_VPHYSICS )
-		self:SetModelScale( self:GetModelScale() / 2, 0 )
-		self:SetVar( "hit", false )
+		//self:SetModelScale( self:GetModelScale(), 0 )
+		//self:SetVar( "hit", false )
 		
 		local phys = self:GetPhysicsObject()
-		phys:EnableGravity( false )
+		phys:EnableGravity( true )
+
+		local sequence = self:LookupSequence( "assembling" )
+		//self:ResetSequence( sequence )
+		self:SetPlaybackRate( 1.0 )
+		phys:EnableMotion( false ) 
+		phys:EnableCollisions( false )
+		//self:SetCycle( -1 )
+		
+		self:SetSequence( sequence )
+		timer.Create( "standanim", self:SequenceDuration( sequence ), 0, function()
+			if( self:IsValid() ) then
+				local sequence = self:LookupSequence( "stand" )
+				phys:EnableMotion( true )
+				phys:EnableCollisions( true )
+				self:SetPlaybackRate( 1.0 )
+				self:SetSequence( sequence )
+			end
+		end )
 	end
 	
+	//if( CLIENT ) then
+		
+		
+	//end
+	
+	
+	/*
 	if( CLIENT ) then
 		local vec = self:GetPos()
 		local emitter = ParticleEmitter( vec, false )
@@ -48,21 +75,18 @@ function ENT:Initialize()
 		
 		emitter:Finish()
 	end
+	*/
 end
 
 if( SERVER ) then
 	function ENT:Think()
-		local parent = self:GetParent()
-		
-		if( parent:IsValid() ) then
-			if( parent:IsPlayer() ) then
-				if( parent:Health() <= 0 ) then
-					self:Remove()
-				end
-			end
-		end
-	end
+		//self:SendViewModelMatchingSequence( sequence )
 
+		self:NextThink( CurTime() )
+		return true
+	end
+	
+	/*
 	function ENT:PhysicsUpdate( )
 		if( !self:GetVar( "hit", NULL ) ) then
 			if( self:GetVelocity():Length() < 1000 ) then
@@ -73,29 +97,5 @@ if( SERVER ) then
 			end
 		end
 	end
-
-	function ENT:PhysicsCollide( data, phys )
-		if( !self:GetVar( "hit", NULL ) ) then
-			if( data.Speed > 100 ) then
-				local hitEnt = data.HitEntity
-				
-				if( hitEnt:GetClass() != "ent_undertale_bone_throw" && hitEnt != self.Owner ) then
-					self:SetMoveType( MOVETYPE_NONE )
-					self:SetPos( data.HitPos )
-					self:SetSolid( SOLID_NONE )
-					
-					if( hitEnt:IsValid()) then
-						//if hitEnt:Health() > 0 then
-							hitEnt:TakeDamage( 15, self.Owner, self )
-							self:SetParent( hitEnt, -1 )
-						//end
-					end
-					
-					self:SetVar( "hit", true )
-					self:Fire( "Kill", "", 10 )
-					sound.Play( Sound( "undertale/sans/smash.wav" ), self:GetPos() )
-				end
-			end
-		end
-	end
+	*/
 end

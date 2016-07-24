@@ -1,6 +1,0 @@
-"VertexlitGeneric"
-{
-	"$basetexture" "models/stargate/replicators/replicator_segment/replicator_segment"
-	"$bumpmap" "models/stargate/replicators/replicator_segment/replicator_segment_bump"
-	"$normalmap" "models/stargate/replicators/replicator_segment/replicator_segment_bump"
-}
