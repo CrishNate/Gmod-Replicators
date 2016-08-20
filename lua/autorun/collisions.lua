@@ -10,16 +10,6 @@ replicatorNoCollideGroup_Witch = {
 	"replicator_worker"
 }
 
-function PlaySequence( self, seq )
-	local sequence = self:LookupSequence( seq )
-	
-	self:SetPlaybackRate( 1.0 )
-	self:SetSequence( sequence )
-	self:ResetSequence( sequence )
-	
-	return self:SequenceDuration( sequence )
-end
-
 function traceHull( startpos, endpos, rad, ignore )
 	local tr = util.TraceHull( {
 		start = startpos,
@@ -97,4 +87,5 @@ hook.Add("ShouldCollide", "replicator_nocolide", function( ent1, ent2 )
 			end
 		end
 	end
+	
 end )

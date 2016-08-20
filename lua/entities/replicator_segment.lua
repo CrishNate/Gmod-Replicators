@@ -20,7 +20,7 @@ function ENT:Initialize()
 		self:PhysicsInit( SOLID_VPHYSICS )
 		self:SetMoveType( MOVETYPE_VPHYSICS )
 		self:SetSolid( SOLID_VPHYSICS )
-		//self:SetModelScale( self:GetModelScale() * 1.5, 0 )
+		self:SetModelScale( self:GetModelScale() * 1.5, 0 )
 
 		self:SetUnFreezable( true ) 
 		self:SetCollisionGroup( COLLISION_GROUP_WEAPON )
@@ -88,21 +88,21 @@ if SERVER then
 							v:GetVelocity():Length() < 10 and 
 								!v:GetVar( "assembling" ) and !v:GetVar( "used" ):IsValid() and v != self ) then
 								
-									if not self:GetVar( "rCraftingQueen" ) then
-									
-										if table.Count( segments ) < g_segments_to_assemble_replicator then table.Add( segments, { v } ) 
-										elseif table.Count( segments ) + table.Count( save ) < g_segments_to_assemble_queen then
-											table.Add( save, { v } )
-											
-											if table.Count( segments ) + table.Count( save ) == g_segments_to_assemble_queen then
-												table.Add( segments, save )
-												self:SetVar( "rCraftingQueen", true )
-											end
-											
-										end
-										
-									elseif v:GetVar( "rCraftingQueen" ) and table.Count( segments ) < g_segments_to_assemble_queen then table.Add( segments, { v } ) end
+						if not self:GetVar( "rCraftingQueen" ) then
+						
+							if table.Count( segments ) < g_segments_to_assemble_replicator then table.Add( segments, { v } ) 
+							elseif table.Count( segments ) + table.Count( save ) < g_segments_to_assemble_queen then
+								table.Add( save, { v } )
+								
+								if table.Count( segments ) + table.Count( save ) == g_segments_to_assemble_queen then
+									table.Add( segments, save )
+									self:SetVar( "rCraftingQueen", true )
 								end
+								
+							end
+							
+						elseif v:GetVar( "rCraftingQueen" ) and table.Count( segments ) < g_segments_to_assemble_queen then table.Add( segments, { v } ) end
+					end
 				end
 				
 				if table.Count( segments ) == g_segments_to_assemble_replicator and not self:GetVar( "rCraftingQueen" ) or
@@ -125,12 +125,12 @@ if SERVER then
 				end
 			else
 				//self:SetColor( Color( 255, 0, 255 ) )
-				self:NextThink( CurTime() )
+				self:NextThink( CurTime() + 0.1 )
 
 				local segments = self:GetVar( "assembling_segments" )
 				local middle = self:GetVar( "segments_middle" )
 				
-				self:SetVar( "radius", self:GetVar( "radius" ) + 2 )
+				self:SetVar( "radius", self:GetVar( "radius" ) + 10 )
 				
 				local inx = 0
 
@@ -148,12 +148,20 @@ if SERVER then
 						phys:SetVelocity( Vector( dir.x, dir.y, vVel.z ))
 						phys:SetMaterial( "gmod_ice" )
 						
-						if v:GetPos():Distance( middle ) < math.Rand( 0, table.Count( segments ) / 10 ) + 5 then
+						local t_Rad
+
+						if not self:GetVar( "rCraftingQueen" ) then
+							t_Rad = 5
+						else
+							t_Rad = 10
+						end
+						
+						if v:GetPos():Distance( middle ) < t_Rad + math.Rand( 0, 5 ) then
 							phys:EnableMotion( false )
 							phys:EnableCollisions( false )
 						end
 						
-						if v:GetPos():Distance( middle ) <= ( table.Count( segments ) / 10 + 5 ) then inx = inx + 1 end
+						if v:GetPos():Distance( middle ) <= t_Rad + 5 then inx = inx + 1 end
 						
 					end
 				end
@@ -170,7 +178,7 @@ if SERVER then
 					if not self:GetVar( "rCraftingQueen" ) then
 						ent = ents.Create( "replicator_worker" )
 						t_Height = 6
-						t_AddTime = 0
+						t_AddTime = 0.5
 					else
 						ent = ents.Create( "replicator_queen" )
 						t_Height = 13

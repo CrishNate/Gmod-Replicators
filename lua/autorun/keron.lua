@@ -2,13 +2,21 @@
 g_segments_to_assemble_replicator 	= 30
 g_segments_to_assemble_queen 		= 90
 
-g_replicator_collection_speed		= 2.5
+g_replicator_collection_speed		= 10
 g_replicator_giving_speed			= 10
+
+g_replicator_min_dark_level			= 20
+
+g_amount_of_worker_for_one_queen	= 10
 
 //--------- Path ways for replicators
 m_pathPoints = { }
 m_metalPoints = { } m_metalPointsAsigned = { }
 m_darkPoints = { }
+
+m_pointIsInvalid = { }
+
+m_predicateQueenCount = 0
 
 m_queenCount = { }
 m_workersCount = { }
@@ -33,7 +41,21 @@ hook.Add( "Initialize", "replicator_keron_initialize", function( )
 	
 end )
 
-local endPOS
+/*
+concommand.Add( "tr_replicator_", function( ply )
+	local swep = ply:GetActiveWeapon()
+	if( ply:GetVar( "bad_time" ) != NULL && ply:GetVar( "bad_time_mode" ) != NULL && swep:IsValid() ) then
+		
+		if( ply:GetVar( "bad_time" ) == 100 && swep:GetClass() == "weapon_undertale_sans" ) then
+			if( ply:GetVar( "bad_time_mode" ) == 0 ) then
+				ply:SetVar( "bad_time_mode", CurTime() )
+			end
+		end
+	end
+end )
+*/
+
+//local endPOS
 
 hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key ) 
 
@@ -45,10 +67,8 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 				net.WriteTable( m_pathPoints )
 			net.Broadcast()
 			
-			//print( "__________" )
-			//PrintTable( m_pathPoints )
 		end
-		
+		/*
 		
 		if key == IN_RELOAD then endPOS = ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10 print( endPOS ) end
 
@@ -59,19 +79,27 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 		end
 		
 		if key == IN_USE then
-			local case, index = FindClosestPoint( ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10, 0 )
-			local result = GetPatchWay( { case, index }, endPOS )
+			local case, index = FindClosestPoint( ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10, 1 )
 
+			print( case, index )
+			
+			local result = GetPatchWay( { case = case, index = index }, endPOS )
+
+			PrintTable( result )
+			
 			net.Start( "debug_render_rerpl" )
 				net.WriteTable( result )
 			net.Broadcast()
 		end
+		*/
+		
 		
 	end
 end )
 
 
 hook.Add( "PostCleanupMap", "replicator_keron_clear", function( )
+
 	m_pathPoints = { }
 	m_metalPoints = { }
 	m_DebugLink = { }
@@ -99,6 +127,18 @@ function convertToGrid( pos, size )
 end
 
 if SERVER then
+
+	function PlaySequence( self, seq )
+	
+		local sequence = self:LookupSequence( seq )
+		self:ResetSequence( sequence )
+
+		self:SetPlaybackRate( 1.0 )
+		self:SetSequence( sequence )
+		
+		return self:SequenceDuration( sequence )
+	end
+
 	//
 	// Returning closest point from Replicators Net Work to pos
 	//
@@ -123,12 +163,21 @@ if SERVER then
 		end
 		end
 		
+		local t_First = true
 		for k, v in pairs( t_pathPoints ) do
 			local tracer = traceLine( v.pos, pos, replicatorNoCollideGroup_Witch )
 			
 			if not tracer.Hit then
 			
-				if t_Dist > 0 then
+				if t_First then
+				
+					t_First = false
+					t_Dist = v.pos:Distance( pos )
+
+					t_Case = v.case
+					t_Index = v.index
+					
+				else
 				
 					local d = v.pos:Distance( pos )
 					
@@ -140,14 +189,6 @@ if SERVER then
 						t_Index = v.index
 						
 					end
-					
-				else
-				
-					t_Dist = v.pos:Distance( pos )
-
-					t_Case = v.case
-					t_Index = v.index
-					
 				end
 			end
 		end
@@ -160,31 +201,39 @@ if SERVER then
 	//
 	function GetPatchWay( start, endpos )
 
-		local t_Index, t_Case = FindClosestPoint( endpos, 0 )
+		local t_Case, t_Index = FindClosestPoint( endpos, 1 )
 		local t_Links = { }
+		local t_LinksAvailable = { }
 		local t_LinksHistory = { }
-
+		
 		t_Links = { { case = start.case, index = start.index } }
+		t_LinksAvailable[ start.case.."|"..start.index ] = true
 		
-		t_LinksHistory[ start.index ] = { start.index }
-		
+		t_LinksHistory[ start.case ] = {}
+		t_LinksHistory[ start.case ][ start.index ] = { { case = start.case, index = start.index } }
+
 		for k, v in pairs( t_Links ) do
 			
 			for k2, v2 in pairs( m_pathPoints[ v.case ][ v.index ].connection ) do
-			
-				if not table.HasValue( t_Links, { case = v2.case, index = v2.index } ) then
+
+				if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
 				
-					table.Add( t_Links, { case = v2.case, index = v2.index } )
-					t_LinksHistory[ v2.case ][ v2.index ] = { case = v2.case, index = v2.index }
+					table.Add( t_Links, { { case = v2.case, index = v2.index } } )
+					t_LinksAvailable[ v2.case.."|"..v2.index ] = true
 					
+					if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
+					
+					t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
 					table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
 					
-					if v2.case == t_Case or v2.index == t_Index then return table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ) end
+					if v2.case == t_Case and v2.index == t_Index then return table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ) end
 					
 				end
 			end
-			
+
 			t_LinksHistory[ v.case ][ v.index ] = { }
+
+			if k > 1000 then print( "BREAK" ) PrintTable( t_Links ) break end
 		end
 		
 		return {}
@@ -193,138 +242,208 @@ if SERVER then
 	//
 	// Getting Path in Replicators Net Work to closest entTable element
 	//
-	function GetPatchWayToClosestEnt( startid, entTable )
+	function GetPatchWayToClosestEnt( start, entTable )
 
 		local t_Links = { }
+		local t_LinksAvailable = { }
 		local t_LinksHistory = { }
-
-		t_Links = { startid }
-		t_LinksHistory[ startid ] = { startid }
 		
+		t_Links = { { case = start.case, index = start.index } }
+		t_LinksAvailable[ start.case.."|"..start.index ] = true
+		
+		t_LinksHistory[ start.case ] = {}
+		t_LinksHistory[ start.case ][ start.index ] = { { case = start.case, index = start.index } }
+
 		for k, v in pairs( t_Links ) do
 			
-			for k2, v2 in pairs( m_pathPoints[ v ].connection ) do
-			
-				if not table.HasValue( t_Links, v2 ) then
+			for k2, v2 in pairs( m_pathPoints[ v.case ][ v.index ].connection ) do
+
+				if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
 				
-					table.Add( t_Links, { v2 } )
-					t_LinksHistory[ v2 ] = { v2 }
+					table.Add( t_Links, { { case = v2.case, index = v2.index } } )
+					t_LinksAvailable[ v2.case.."|"..v2.index ] = true
 					
-					table.Add( t_LinksHistory[ v2 ], t_LinksHistory[ v ] )
+					if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
 					
+					t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
+					table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
+					
+					local t_v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
+
 					for k3, v3 in pairs( entTable ) do
 					
-						if m_pathPoints[ v2 ].pos:Distance( v3:GetPos() ) < 50 and not traceLine( v3:GetPos(), m_pathPoints[ v2 ].pos, replicatorNoCollideGroup_Witch ).Hit then
+						if t_v2pos:Distance( v3:GetPos() ) < 50 and not traceLine( v3:GetPos(), t_v2pos, replicatorNoCollideGroup_Witch ).Hit then
 							
-							v3.used = true
-							return table.Add( table.Reverse( t_LinksHistory[ v2 ] ), { v3:GetPos() } ), v3
+							return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3:GetPos() } ), v3
 
 						end
 					end
 				end
 			end
 
-			t_LinksHistory[ v ] = { }
+			t_LinksHistory[ v.case ][ v.index ] = { }
+
+			if k > 1000 then print( "BREAK ERROR 1" ) break end
 		end
 		
-		return {}
+		return {}, Entity( 0 )
 	end
 
 	//
-	// Getting Path in Replicators Net Work to closest metal spot
+	// Getting Path in Replicators Net Work to closest Id
 	//
-	function GetPatchWayToClosestMetal( startid )
+	function GetPatchWayToClosestId( start )
 
 		local t_Links = { }
+		local t_LinksAvailable = { }
 		local t_LinksHistory = { }
-
-		t_Links = { startid }
-		t_LinksHistory[ startid ] = { startid }
 		
+		t_Links = { { case = start.case, index = start.index } }
+		t_LinksAvailable[ start.case.."|"..start.index ] = true
+		
+		t_LinksHistory[ start.case ] = {}
+		t_LinksHistory[ start.case ][ start.index ] = { { case = start.case, index = start.index } }
+
 		for k, v in pairs( t_Links ) do
 			
-			for k2, v2 in pairs( m_pathPoints[ v ].connection ) do
-			
-				if not table.HasValue( t_Links, v2 ) then
-					table.Add( t_Links, { v2 } )
-					t_LinksHistory[ v2 ] = { v2 }
-					
-					table.Add( t_LinksHistory[ v2 ], t_LinksHistory[ v ] )
-					
-					for k3, v3 in pairs( m_metalPoints ) do
-					
-						if m_pathPoints[ v2 ].pos:Distance( v3.pos ) < 50 and not v3.used and not traceLine( v3.pos, m_pathPoints[ v2 ].pos, replicatorNoCollideGroup_Witch ).Hit then
-							v3.used = true
-							return table.Add( table.Reverse( t_LinksHistory[ v2 ] ), { v3.pos } ), k3
-						end
-						
-					end
-				end
-			end
+			for k2, v2 in pairs( m_pathPoints[ v.case ][ v.index ].connection ) do
 
-			t_LinksHistory[ v ] = { }
-		end
-		
-		return {}
-	end
-	
-	//
-	// Getting Path in Replicators Net Work to closest dark spot
-	//
-	function GetPatchWayToClosestDark( startid )
-
-		local t_Links = { }
-		local t_LinksHistory = { }
-
-		t_Links = { startid }
-		t_LinksHistory[ startid ] = { startid }
-		
-		for k, v in pairs( t_Links ) do
-			
-			for k2, v2 in pairs( m_pathPoints[ v ].connection ) do
-			
-				if not table.HasValue( t_Links, v2 ) then
-					table.Add( t_Links, { v2 } )
-					t_LinksHistory[ v2 ] = { v2 }
+				if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+				
+					table.Add( t_Links, { { case = v2.case, index = v2.index } } )
+					t_LinksAvailable[ v2.case.."|"..v2.index ] = true
 					
-					table.Add( t_LinksHistory[ v2 ], t_LinksHistory[ v ] )
+					if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
+					
+					t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
+					table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
+					
+					local t_v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
 					
 					for k3, v3 in pairs( m_darkPoints ) do
-
-						if m_pathPoints[ v2 ].pos:Distance( v3.pos ) < 50 and not v3.used and not traceLine( v3.pos, m_pathPoints[ v2 ].pos, replicatorNoCollideGroup_Witch ).Hit then
-							v3.used = true
-							return table.Add( table.Reverse( t_LinksHistory[ v2 ] ), { v3.pos } ), k3
-						end
 						
+						if t_v2pos:Distance( v3.pos ) < 50 and not v3.used and not traceLine( v3.pos, t_v2pos, replicatorNoCollideGroup_Witch ).Hit then
+							
+							return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
+
+						end
 					end
+					
 				end
 			end
 
-			t_LinksHistory[ v ] = { }
+			t_LinksHistory[ v.case ][ v.index ] = { }
+
+			if k > 1000 then print( "BREAK ERROR 1" ) break end
 		end
 		
-		return {}
+		return {}, 0
+	end
+
+
+	//
+	// Getting Path in Replicators Net Work to metal
+	//
+	function GetPatchWayToClosestMetal( start )
+
+		local t_Links = { }
+		local t_LinksAvailable = { }
+		local t_LinksHistory = { }
+		
+		t_Links = { { case = start.case, index = start.index } }
+		t_LinksAvailable[ start.case.."|"..start.index ] = true
+		
+		t_LinksHistory[ start.case ] = {}
+		t_LinksHistory[ start.case ][ start.index ] = { { case = start.case, index = start.index } }
+
+		for k, v in pairs( t_Links ) do
+			
+			for k2, v2 in pairs( m_pathPoints[ v.case ][ v.index ].connection ) do
+
+				if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+				
+					table.Add( t_Links, { { case = v2.case, index = v2.index } } )
+					t_LinksAvailable[ v2.case.."|"..v2.index ] = true
+					
+					if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
+					
+					t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
+					table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
+					
+					local v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
+					
+					for k3, v3 in pairs( m_metalPoints ) do
+						
+						if v3.ent then
+							
+							local v3pos = v3.ent:WorldSpaceCenter()
+							
+							if v2pos:Distance( v3pos ) < ( 50 + v3.ent:GetModelRadius() ) then
+								
+								return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
+								
+							end
+							
+						else
+
+							if v2pos:Distance( v3.pos ) < 50 and not v3.used and not traceLine( v2pos, v3.pos, replicatorNoCollideGroup_Witch ).Hit then
+								
+								return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
+								
+							end
+
+						end
+					end
+					
+				end
+			end
+
+			t_LinksHistory[ v.case ][ v.index ] = { }
+
+			if k > 100 then print( "BREAK" ) break end
+		end
+		
+		print( "DOESNT FOUNDED METAL")
+		return {}, 0
 	end
 	
 	//
 	// Adding metal spot
 	//
+	
 	function UpdateMetalPoint( _stringp, _amount )
 		m_metalPoints[ _stringp ].amount = _amount
 
 		net.Start( "update_metal_points" ) net.WriteString( _stringp ) net.WriteFloat( _amount ) net.Broadcast()
 	end
+	
+	//
+	// Adding metal entity
+	//
+	function AddMetalEntity( _ent )
 
+		local _stringp = "_".._ent:EntIndex()
+		
+		m_metalPoints[ _stringp ] = { ent = _ent, amount = _ent:GetModelRadius() * 4 }
+		m_metalPointsAsigned[ _stringp ] = true
+		
+	end
+	
+	
 	function AddMetalPoint( _stringp, _pos, _normal, _amount )
+		
 		m_metalPoints[ _stringp ] = { pos = _pos, normal = _normal, amount = _amount, used = false }
 		m_metalPointsAsigned[ _stringp ] = true
 		
 		local t_tracer = traceQuick( _pos, -_normal * 20, replicatorNoCollideGroup_Witch )
 				
 		net.Start( "add_metal_points" )
+		
 			net.WriteString( _stringp )
 			net.WriteTable( { pos = t_tracer.HitPos, normal = t_tracer.HitNormal, amount = _amount, used = false } )
+			
 		net.Broadcast()
+		
 	end
 	
 	//
@@ -342,9 +461,9 @@ if SERVER then
 		for y = -1, 1 do
 		for z = -1, 1 do
 
-			local coord, sCoord = convertToGrid( _pos + Vector( x, y, z ) * 100, 100 )
+			local coord, sCoord = convertToGrid( _pos + Vector( x, y, z ) * 80, 100 )
 			
-			if m_pathPoints[ sCoord ] then table.Add( t_pathPoints, m_pathPoints[ sCoord ] ) print( x, y, z ) end
+			if m_pathPoints[ sCoord ] then table.Add( t_pathPoints, m_pathPoints[ sCoord ] ) end
 			
 		end
 		end
@@ -356,36 +475,40 @@ if SERVER then
 			
 				for k, v in pairs( t_pathPoints ) do
 				
-					if not merge and not ( v.case == v2.case and v.index == v2.index ) and v.pos:Distance( _pos ) < 50 and not traceLine( v.pos, m_pathPoints[ v2.case ][ v2.index ].pos, replicatorNoCollideGroup_Witch ).Hit then
+					local v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
 					
-						if not table.HasValue( m_pathPoints[ v.case ][ v.index ].connection, v2 ) then
+					if not ( v.case == v2.case and v.index == v2.index ) 
+						and v.pos:Distance( _pos ) < 50
+							and not traceLine( v.pos, v2pos, replicatorNoCollideGroup_Witch ).Hit then
+					
+						if not m_pathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] then
 						
-							table.Add( m_pathPoints[ v.case ][ v.index ].connection, {{ case = v2.case, index = v2.index }} )
-							table.Add( m_pathPoints[ v2.case ][ v2.index ].connection, {{ case = v.case, index = v.index }} )
+							m_pathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] = { case = v2.case, index = v2.index }
+							m_pathPoints[ v2.case ][ v2.index ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
+
+							//table.Add( m_pathPoints[ v.case ][ v.index ].connection, {{ case = v2.case, index = v2.index }} )
+							//table.Add( m_pathPoints[ v2.case ][ v2.index ].connection, {{ case = v.case, index = v.index }} )
 							
-							PrintMessage( HUD_PRINTTALK, v.case.."/"..v.index.."_"..v2.case.."/"..v2.index )
-							
+							t_Mergered = true
 						end
 						
-						t_Mergered = true
+						returnID = { case = v.case, index = v.index }
 						merge = true
-						returnID = v
 					end
 				end
 			end
+		end
 			
-		elseif table.Count( t_pathPoints ) > 0 then
+		if ( table.Count( _connection ) == 0 or not t_Mergered ) and table.Count( t_pathPoints ) > 0 then
 		
-			local t_Case, t_Index = FindClosestPoint( _pos, 0 )
+			local t_Case, t_Index = FindClosestPoint( _pos, 1 )
 
-			if t_Case != "" and t_Index > 0 then
-			
-				if m_pathPoints[ t_Case ][ t_Index ].pos:Distance( _pos ) < 50 and not traceLine( _pos, m_pathPoints[ t_Case ][ t_Index ].pos, replicatorNoCollideGroup_Witch ).Hit then
+			if t_Case != "" and t_Index > 0 
+				and m_pathPoints[ t_Case ][ t_Index ].pos:Distance( _pos ) < 50 
+					and not traceLine( _pos, m_pathPoints[ t_Case ][ t_Index ].pos, replicatorNoCollideGroup_Witch ).Hit then
 				
-					merge = true
-					returnID = { case = t_Case, index = t_Index }
-					
-				end
+				merge = true
+				returnID = { case = t_Case, index = t_Index }
 				
 			end
 		end
@@ -411,16 +534,19 @@ if SERVER then
 			
 			for k, v in pairs( _connection ) do
 			
-				local result = traceLine( _pos, m_pathPoints[ v.case ][ v.index ].pos, replicatorNoCollideGroup_Witch )
+				//local result = traceLine( _pos, m_pathPoints[ v.case ][ v.index ].pos, replicatorNoCollideGroup_Witch )
 
-				if not result.Hit then
+				//if not result.Hit then
 
-					table.Add( m_pathPoints[ v.case ][ v.index ].connection, {{ case = sCoord, index = m_ID }} )
-					table.Add( m_pathPoints[ sCoord ][ m_ID ].connection, {{ case = v.case, index = v.index }} )
-
-					PrintMessage( HUD_PRINTTALK, m_ID )
+					m_pathPoints[ v.case ][ v.index ].connection[ sCoord.."|"..m_ID ] = { case = sCoord, index = m_ID }
+					m_pathPoints[ sCoord ][ m_ID ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
 					
-				end
+					//table.Add( m_pathPoints[ v.case ][ v.index ].connection, {{ case = sCoord, index = m_ID }} )
+					//table.Add( m_pathPoints[ sCoord ][ m_ID ].connection, {{ case = v.case, index = v.index }} )
+
+					//PrintMessage( HUD_PRINTTALK, m_ID )
+					
+				//end
 				
 			end
 			
@@ -430,7 +556,7 @@ if SERVER then
 		return returnID, t_Mergered
 	end
 
-	net.Receive( "rDark_points", function() m_darkPoints[ net.ReadString() ] = { pos = net.ReadVector() } end )
+	net.Receive( "rDark_points", function() m_darkPoints[ net.ReadString() ] = { pos = net.ReadVector(), used = false } end )		
 	
 end // SERVER
 
@@ -472,7 +598,7 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 	
 		render.SetMaterial( Material( "models/wireframe" ) )
 		
-		render.DrawBox( Vector( tonumber( words[ 1 ], 10 ), tonumber( words[ 2 ], 10 ), tonumber( words[ 3 ], 10 ) ), Angle( ), -Vector( 1, 1, 1 ) * 50, Vector( 1, 1, 1 ) * 50, Color( 255, 255, 255 ), false ) 
+		//render.DrawBox( Vector( tonumber( words[ 1 ], 10 ), tonumber( words[ 2 ], 10 ), tonumber( words[ 3 ], 10 ) ), Angle( ), -Vector( 1, 1, 1 ) * 50, Vector( 1, 1, 1 ) * 50, Color( 255, 255, 255 ), false ) 
 
 		for k2, v2 in pairs( v ) do
 
@@ -498,11 +624,10 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 	
 	for k, v in pairs( m_darkPoints ) do
 	
-		render.SetMaterial( Material( "models/wireframe" ) )
-		render.SetColorModulation( 1, 0, 1 )
+		render.SetColorMaterial()
 		render.SetBlend( 1 )
 		
-		render.DrawBox( v.pos, Angle( ), -Vector( 1, 1, 1 ), Vector( 1, 1, 1 ), Color( 25, 255, 255 ), true ) 
+		render.DrawBox( v.pos, Angle( ), -Vector( 10, 10, 0 ), Vector( 10, 10, 0 ), Color( 255, 255, 255, 10 ), true ) 
 		
 	end
 
@@ -522,7 +647,8 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 	
 	for k, v in pairs( m_DebugLink ) do
 	
-		render.DrawBox( m_pathPoints[ v ].pos, Angle( 45, 45 ,45 ), -Vector( 9, 9, 9 ) * ( 1 + k / 100 ), Vector( 9, 9, 9 ) * ( 1 + k / 100 ), Color( 0, 0, 255 ), false ) 
+		render.SetColorMaterial()
+		render.DrawBox( m_pathPoints[ v.case ][ v.index ].pos, Angle( 45, 45 ,45 ), -Vector( 1, 1, 1 ) * ( 1 + k / 100 ), Vector( 1, 1, 1 ) * ( 1 + k / 100 ), Color( 0, 0, 255 ), false ) 
 		
 	end
 	
