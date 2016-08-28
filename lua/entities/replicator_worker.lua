@@ -4,7 +4,7 @@ include( "replicator_class.lua" )
 ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
 
-ENT.Editable		= true
+ENT.Editable		= false
 ENT.PrintName		= "Replicator Worker"
 ENT.Spawnable 		= true
 ENT.AdminSpawnable 	= false
@@ -23,30 +23,50 @@ function ENT:Initialize()
 		self:SetSolid( SOLID_VPHYSICS )
 		
 		self:SetHealth( 25 )
-		
-		ReplicatorInitialize( self )
-		
+	
 	end // SERVER
 
 	if CLIENT  then
 		
 		
 	end // CLIENT
+
+	ReplicatorInitialize( self )
+	
 end
 
-/*
+function ENT:SpawnFunction( ply, tr, ClassName )
+
+	if ( !tr.Hit ) then return end
+
+	local SpawnPos = tr.HitPos + tr.HitNormal * 6
+	local SpawnAng = Angle( 0,  ply:EyeAngles().yaw, 0 )
+
+	local ent = ents.Create( ClassName )
+	ent:SetPos( SpawnPos )
+	ent:SetAngles( SpawnAng )
+	ent:Spawn()
+	ent:Activate()
+
+	return ent
+
+end
+
 function ENT:Draw()
 
 	self:DrawModel()
-
+	/*
 	local ent = self
 
 	local maxs = Vector( 6, 6, 6 )
 	local startpos = ent:GetPos() + self:GetUp() * 2
 	local dir = ent:GetForward() * 20
 
-	local tr = traceHullQuick( startpos, dir, maxs, replicatorNoCollideGroup_Witch )
-
+	local tr, trD = cnr_traceHullQuick( 
+				self:GetPos(), -self:GetUp() * 20,
+				Vector( 6, 6, 6 ), replicatorNoCollideGroup_Witch )
+		
+	if tr.Hit then print( trD ) end
 	render.DrawLine( tr.HitPos, startpos + dir * len, color_white, true )
 	render.DrawLine( startpos, tr.HitPos, Color( 0, 0, 255 ), true )
 
@@ -57,42 +77,17 @@ function ENT:Draw()
 
 	render.DrawWireframeBox( startpos, Angle( 0, 0, 0 ), -maxs, maxs, Color( 255, 255, 255 ), true )
 	render.DrawWireframeBox( tr.HitPos, Angle( 0, 0, 0 ), -maxs, maxs, clr, true )
-
+	*/
+	
+	//ReplicatorDrawDebug( self )
 end
-*/
+
 
 if SERVER then
 
 	function ENT:OnTakeDamage( dmginfo )
-		local damage = dmginfo:GetDamage()
-		
-		self:SetHealth( self:Health() - damage )
-
-		if self:Health() <= 0 then
-		
-			local phys = self:GetPhysicsObject()
-			//phys:EnableCollisions( false )
-
-			local ent
-			for i = 1, g_segments_to_assemble_replicator do
-			
-				ent = ents.Create( "replicator_segment" )
-				
-				if not IsValid( ent ) then return end
-				ent:SetPos( self:GetPos() + VectorRand() * 3 )
-				ent:SetAngles( AngleRand() )
-				ent:SetOwner( self:GetOwner() )
-				ent:Spawn()
-				
-				local phys = ent:GetPhysicsObject()
-				phys:Wake()
-				phys:SetVelocity( VectorRand() * ( damage * 2 + 100 ) )
-				
-			end
-			ent:EmitSound( "npc/manhack/gib.wav", 75, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
-			
-			self:Remove()
-		end
+	
+		ReplicatorGetDamaged( 1, self, dmginfo )
 		
 	end
 end
@@ -101,6 +96,7 @@ function ENT:Think()
 
 	self:NextThink( CurTime() + 0.1 )
 
+	//PrintTable( m_metalPoints )
 	if SERVER then
 
 		//
@@ -133,6 +129,7 @@ if SERVER then
 		timer.Remove( "rChangingDirection" .. self:EntIndex() )
 		timer.Remove( "rEating" .. self:EntIndex() )
 		timer.Remove( "rGiving"..self:EntIndex() )
+		timer.Remove( "rDamagining"..self:EntIndex() )
 
 	end
 	

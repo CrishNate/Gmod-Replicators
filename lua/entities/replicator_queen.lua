@@ -4,7 +4,7 @@ include( "replicator_class.lua" )
 ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
 
-ENT.Editable		= true
+ENT.Editable		= false
 ENT.PrintName		= "Replicator Gueen"
 ENT.Spawnable 		= true
 ENT.AdminSpawnable 	= false
@@ -37,19 +37,40 @@ function ENT:Initialize()
 	end // CLIENT
 end
 
+function ENT:SpawnFunction( ply, tr, ClassName )
+
+	if ( !tr.Hit ) then return end
+
+	local SpawnPos = tr.HitPos + tr.HitNormal * 15
+	local SpawnAng = Angle( 0,  ply:EyeAngles().yaw, 0 )
+
+	local ent = ents.Create( ClassName )
+	ent:SetPos( SpawnPos )
+	ent:SetAngles( SpawnAng )
+	ent:Spawn()
+	ent:Activate()
+
+	return ent
+
+end
+
 function ENT:Draw()
 
 	self:DrawModel()
 
 	local effectTime = self.rEffectFrame
 	
-	net.Receive( "rDrawStorageEffect", function() self.rEffectFrame = 1 end )
+	net.Receive( "rDrawStorageEffect", function()
+	
+		if net.ReadEntity() == self then self.rEffectFrame = 1 end
+		
+	end )
 	
 	if effectTime > 0 then
 	
-		if self:GetVar( "rEffectFrame" ) < 100 then self.rEffectFrame = effectTime + 4 end
+		if self:GetVar( "rEffectFrame" ) < 100 then self.rEffectFrame = effectTime + 4 else self.rEffectFrame = 100 end
 		local pos = self:GetPos() - self:GetForward() * 16 - self:GetUp() * 1
-		/*
+		
 		local dlight = DynamicLight( LocalPlayer():EntIndex() )
 		if ( dlight ) then
 			dlight.pos = pos
@@ -61,7 +82,6 @@ function ENT:Draw()
 			dlight.Size = 150
 			dlight.DieTime = CurTime() + 1
 		end
-		*/
 		
 		local emitter = ParticleEmitter( pos, false )
 
@@ -115,34 +135,8 @@ end
 if SERVER then
 
 	function ENT:OnTakeDamage( dmginfo )
-		local damage = dmginfo:GetDamage()
-		
-		self:SetHealth( self:Health() - damage )
 
-		if self:Health() <= 0 then
-		
-			local phys = self:GetPhysicsObject()
-			phys:EnableCollisions( false )
-
-			local ent
-			for i = 1, g_segments_to_assemble_replicator do
-			
-				ent = ents.Create( "replicator_segment" )
-				
-				if not IsValid( ent ) then return end
-				ent:SetPos( self:GetPos() + VectorRand() * 3 )
-				ent:SetOwner( self:GetOwner() )
-				ent:Spawn()
-				
-				local phys = ent:GetPhysicsObject()
-				phys:Wake()
-				phys:SetVelocity( VectorRand() * damage * 4 )
-				
-			end
-			ent:EmitSound( "npc/manhack/gib.wav", 75, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
-			
-			self:Remove()
-		end
+		ReplicatorGetDamaged( 2, self, dmginfo )
 		
 	end
 end
@@ -184,6 +178,8 @@ if SERVER then
 		timer.Remove( "rChangingDirection" .. self:EntIndex() )
 		timer.Remove( "rEating" .. self:EntIndex() )		
 		timer.Remove( "rGiving"..self:EntIndex() )
+		timer.Remove( "rDamagining"..self:EntIndex() )
+
 	end
 	
 end

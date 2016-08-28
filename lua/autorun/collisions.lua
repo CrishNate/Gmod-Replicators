@@ -10,7 +10,7 @@ replicatorNoCollideGroup_Witch = {
 	"replicator_worker"
 }
 
-function traceHull( startpos, endpos, rad, ignore )
+function cnr_traceHull( startpos, endpos, rad, ignore )
 	local tr = util.TraceHull( {
 		start = startpos,
 		endpos = endpos,
@@ -28,7 +28,7 @@ function traceHull( startpos, endpos, rad, ignore )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-function traceHullQuick( startpos, dir, rad, ignore )
+function cnr_traceHullQuick( startpos, dir, rad, ignore )
 	local tr = util.TraceHull( {
 		start = startpos,
 		endpos = startpos + dir,
@@ -46,7 +46,7 @@ function traceHullQuick( startpos, dir, rad, ignore )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-function traceQuick( startpos, dir, ignore )
+function cnr_traceQuick( startpos, dir, ignore )
 	local tr = util.QuickTrace(
 		startpos, dir,
 		function( ent ) 
@@ -61,7 +61,7 @@ function traceQuick( startpos, dir, ignore )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-function traceLine( startpos, endpos, ignore )
+function cnr_traceLine( startpos, endpos, ignore )
 	local tr = util.TraceLine( {
 		start = startpos,
 		endpos = endpos,

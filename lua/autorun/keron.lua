@@ -1,26 +1,3 @@
-//--------- Replicators settings
-g_segments_to_assemble_replicator 	= 30
-g_segments_to_assemble_queen 		= 90
-
-g_replicator_collection_speed		= 10
-g_replicator_giving_speed			= 10
-
-g_replicator_min_dark_level			= 20
-
-g_amount_of_worker_for_one_queen	= 10
-
-//--------- Path ways for replicators
-m_pathPoints = { }
-m_metalPoints = { } m_metalPointsAsigned = { }
-m_darkPoints = { }
-
-m_pointIsInvalid = { }
-
-m_predicateQueenCount = 0
-
-m_queenCount = { }
-m_workersCount = { }
-
 local m_ID = 0
 local m_DebugLink = { }
 
@@ -67,8 +44,10 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 				net.WriteTable( m_pathPoints )
 			net.Broadcast()
 			
+			//PrintTable( m_pathPoints )
+			
 		end
-		/*
+		
 		
 		if key == IN_RELOAD then endPOS = ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10 print( endPOS ) end
 
@@ -87,12 +66,8 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 
 			PrintTable( result )
 			
-			net.Start( "debug_render_rerpl" )
-				net.WriteTable( result )
-			net.Broadcast()
+			net.Start( "debug_render_rerpl" ) net.WriteTable( result ) net.Broadcast()
 		end
-		*/
-		
 		
 	end
 end )
@@ -105,9 +80,11 @@ hook.Add( "PostCleanupMap", "replicator_keron_clear", function( )
 	m_DebugLink = { }
 	m_darkPoints = { }
 	m_metalPointsAsigned = { }
+	m_attackers = { }
 	
 	m_queenCount = { }
 	m_workersCount = { }
+	m_pointIsInvalid = { }
 	
 	m_ID = 0
 
@@ -165,7 +142,7 @@ if SERVER then
 		
 		local t_First = true
 		for k, v in pairs( t_pathPoints ) do
-			local tracer = traceLine( v.pos, pos, replicatorNoCollideGroup_Witch )
+			local tracer = cnr_traceLine( v.pos, pos, replicatorNoCollideGroup_Witch )
 			
 			if not tracer.Hit then
 			
@@ -214,26 +191,56 @@ if SERVER then
 
 		for k, v in pairs( t_Links ) do
 			
-			for k2, v2 in pairs( m_pathPoints[ v.case ][ v.index ].connection ) do
-
-				if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+			if m_pathPoints[ v.case ] and m_pathPoints[ v.case ][ v.index ] and m_pathPoints[ v.case ][ v.index ].connection then
+				local pPoint = m_pathPoints[ v.case ][ v.index ]
 				
-					table.Add( t_Links, { { case = v2.case, index = v2.index } } )
-					t_LinksAvailable[ v2.case.."|"..v2.index ] = true
+				local t_Next = false
+				
+				print( pPoint.ent )
+				
+				if ( pPoint.ent and pPoint.ent:IsValid() and pPoint.ent:GetPos():Distance( pPoint.pos ) < pPoint.ent:GetModelRadius() * 1.5 ) or not pPoint.ent then t_Next = true
+				elseif pPoint.ent then
+				
+					local trace = cnr_traceHullQuick( 
+						pPoint.pos, Vector(),
+						Vector( 10, 10, 10 ), replicatorNoCollideGroup_Witch )
+						
+					if trace.Hit then
+						
+						if trace.Entity:IsValid() then m_pathPoints[ v.case ][ v.index ].ent = trace.Entity
+						else m_pathPoints[ v.case ][ v.index ].ent = nil end
+						
+						t_Next = true
+						
+					end
 					
-					if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
-					
-					t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
-					table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
-					
-					if v2.case == t_Case and v2.index == t_Index then return table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ) end
-					
+				end
+				
+				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) then
+				
+					for k2, v2 in pairs( pPoint.connection ) do
+
+						if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+						
+							table.Add( t_Links, { { case = v2.case, index = v2.index } } )
+							t_LinksAvailable[ v2.case.."|"..v2.index ] = true
+							
+							if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
+							
+							t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
+							table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
+							
+							if v2.case == t_Case and v2.index == t_Index then return table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ) end
+							
+						end
+					end
 				end
 			end
 
 			t_LinksHistory[ v.case ][ v.index ] = { }
 
-			if k > 1000 then print( "BREAK" ) PrintTable( t_Links ) break end
+			if k > 10000 then MsgC( Color( 255, 0, 0 ), "BREAK ERROR 1", "\n" ) PrintTable( t_Links ) break end
 		end
 		
 		return {}
@@ -256,36 +263,48 @@ if SERVER then
 
 		for k, v in pairs( t_Links ) do
 			
-			for k2, v2 in pairs( m_pathPoints[ v.case ][ v.index ].connection ) do
-
-				if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+			if m_pathPoints[ v.case ] and m_pathPoints[ v.case ][ v.index ] and m_pathPoints[ v.case ][ v.index ].connection then
+				local ppoint = m_pathPoints[ v.case ][ v.index ]
 				
-					table.Add( t_Links, { { case = v2.case, index = v2.index } } )
-					t_LinksAvailable[ v2.case.."|"..v2.index ] = true
-					
-					if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
-					
-					t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
-					table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
-					
-					local t_v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
+				if ( ( ppoint.ent and ppoint.ent:IsValid() and ppoint.ent:GetPos():Distance( ppoint.pos ) < ppoint.ent:GetModelRadius() * 1.5 ) or not ppoint.ent )
+					and ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) then
+				
+					for k2, v2 in pairs( ppoint.connection ) do
 
-					for k3, v3 in pairs( entTable ) do
-					
-						if t_v2pos:Distance( v3:GetPos() ) < 50 and not traceLine( v3:GetPos(), t_v2pos, replicatorNoCollideGroup_Witch ).Hit then
+						if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+						
+							table.Add( t_Links, { { case = v2.case, index = v2.index } } )
+							t_LinksAvailable[ v2.case.."|"..v2.index ] = true
 							
-							return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3:GetPos() } ), v3
+							if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
+							
+							t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
+							table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
+							
+							local t_v2pos = ppoint.pos
 
+							for k3, v3 in pairs( entTable ) do
+							
+								if t_v2pos:Distance( v3:GetPos() ) < math.max( 100, v3:GetModelRadius() ) and not cnr_traceLine( v3:GetPos(), t_v2pos, replicatorNoCollideGroup_Witch ).Hit then
+									
+									return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3:GetPos() } ), v3, k3
+
+								end
+							end
 						end
 					end
 				end
 			end
+			
 
 			t_LinksHistory[ v.case ][ v.index ] = { }
 
-			if k > 1000 then print( "BREAK ERROR 1" ) break end
+			if k > 10000 then MsgC( Color( 255, 0, 0 ), "BREAK ERROR 1", "\n" ) break end
+			
 		end
 		
+		print( "DOES FOUNDED" )
 		return {}, Entity( 0 )
 	end
 
@@ -306,35 +325,43 @@ if SERVER then
 
 		for k, v in pairs( t_Links ) do
 			
-			for k2, v2 in pairs( m_pathPoints[ v.case ][ v.index ].connection ) do
-
-				if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+			if m_pathPoints[ v.case ] and m_pathPoints[ v.case ][ v.index ] and m_pathPoints[ v.case ][ v.index ].connection then
+				local ppoint = m_pathPoints[ v.case ][ v.index ]
 				
-					table.Add( t_Links, { { case = v2.case, index = v2.index } } )
-					t_LinksAvailable[ v2.case.."|"..v2.index ] = true
-					
-					if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
-					
-					t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
-					table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
-					
-					local t_v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
-					
-					for k3, v3 in pairs( m_darkPoints ) do
-						
-						if t_v2pos:Distance( v3.pos ) < 50 and not v3.used and not traceLine( v3.pos, t_v2pos, replicatorNoCollideGroup_Witch ).Hit then
-							
-							return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
+				if ( ( ppoint.ent and ppoint.ent:IsValid() and ppoint.ent:GetPos():Distance( ppoint.pos ) < ppoint.ent:GetModelRadius() * 1.5 ) or not ppoint.ent )
+					and ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) then
+				
+					for k2, v2 in pairs( ppoint.connection ) do
 
+						if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+						
+							table.Add( t_Links, { { case = v2.case, index = v2.index } } )
+							t_LinksAvailable[ v2.case.."|"..v2.index ] = true
+							
+							if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
+							
+							t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
+							table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
+							
+							local t_v2pos = ppoint.pos
+							
+							for k3, v3 in pairs( m_darkPoints ) do
+								
+								if t_v2pos:Distance( v3.pos ) < 50 and not v3.used and not cnr_traceLine( v3.pos, t_v2pos, replicatorNoCollideGroup_Witch ).Hit then
+									
+									return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
+
+								end
+							end
 						end
 					end
-					
-				end
+				else end
 			end
 
 			t_LinksHistory[ v.case ][ v.index ] = { }
 
-			if k > 1000 then print( "BREAK ERROR 1" ) break end
+			if k > 10000 then MsgC( Color( 255, 0, 0 ), "BREAK ERROR 1", "\n" ) break end
 		end
 		
 		return {}, 0
@@ -358,52 +385,66 @@ if SERVER then
 
 		for k, v in pairs( t_Links ) do
 			
-			for k2, v2 in pairs( m_pathPoints[ v.case ][ v.index ].connection ) do
-
-				if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
+			if m_pathPoints[ v.case ] and m_pathPoints[ v.case ][ v.index ] and m_pathPoints[ v.case ][ v.index ].connection then
+				local ppoint = m_pathPoints[ v.case ][ v.index ]
 				
-					table.Add( t_Links, { { case = v2.case, index = v2.index } } )
-					t_LinksAvailable[ v2.case.."|"..v2.index ] = true
-					
-					if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
-					
-					t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
-					table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
-					
-					local v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
-					
-					for k3, v3 in pairs( m_metalPoints ) do
+				if ( ( ppoint.ent and ppoint.ent:IsValid() and ppoint.ent:GetPos():Distance( ppoint.pos ) < ppoint.ent:GetModelRadius() * 1.5 ) or not ppoint.ent )
+					and ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) then
+				
+
+					for k2, v2 in pairs( ppoint.connection ) do
+
+						if not t_LinksAvailable[ v2.case.."|"..v2.index ] then
 						
-						if v3.ent then
+							table.Add( t_Links, { { case = v2.case, index = v2.index } } )
+							t_LinksAvailable[ v2.case.."|"..v2.index ] = true
 							
-							local v3pos = v3.ent:WorldSpaceCenter()
+							if not t_LinksHistory[ v2.case ] then t_LinksHistory[ v2.case ] = {} end
 							
-							if v2pos:Distance( v3pos ) < ( 50 + v3.ent:GetModelRadius() ) then
+							t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
+							table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
+							
+							local v2pos = ppoint.pos
+							
+							for k3, v3 in pairs( m_metalPoints ) do
 								
-								return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
+								if v3.ent then
 								
+									if v3.ent:IsValid() then
+									
+										local v3pos = v3.ent:WorldSpaceCenter()
+										
+										if v2pos:Distance( v3pos ) < math.max( 100, v3.ent:GetModelRadius() ) and cnr_traceLine( v2pos, v3.pos, replicatorNoCollideGroup_Witch ).Hit then
+											
+											return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
+											
+										end
+									else table.remove( m_metalPoints, ""..v3.ent:EntIndex() ) end
+									
+								else
+
+									if v2pos:Distance( v3.pos ) < 50 and not v3.used and not cnr_traceLine( v2pos, v3.pos, replicatorNoCollideGroup_Witch ).Hit then
+										
+										return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
+										
+									end
+
+								end
 							end
 							
-						else
-
-							if v2pos:Distance( v3.pos ) < 50 and not v3.used and not traceLine( v2pos, v3.pos, replicatorNoCollideGroup_Witch ).Hit then
-								
-								return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
-								
-							end
-
 						end
 					end
-					
-				end
-			end
+				else end
+				
+			else MsgC( Color( 255, 0, 0 ), "ERROR LNK", "\n" ) end
 
 			t_LinksHistory[ v.case ][ v.index ] = { }
 
-			if k > 100 then print( "BREAK" ) break end
+			//if k > 100 then print( "BREAK" ) break end
 		end
 		
-		print( "DOESNT FOUNDED METAL")
+		//print( "DOESNT FOUNDED METAL")
 		return {}, 0
 	end
 	
@@ -435,7 +476,7 @@ if SERVER then
 		m_metalPoints[ _stringp ] = { pos = _pos, normal = _normal, amount = _amount, used = false }
 		m_metalPointsAsigned[ _stringp ] = true
 		
-		local t_tracer = traceQuick( _pos, -_normal * 20, replicatorNoCollideGroup_Witch )
+		local t_tracer = cnr_traceQuick( _pos, -_normal * 20, replicatorNoCollideGroup_Witch )
 				
 		net.Start( "add_metal_points" )
 		
@@ -449,7 +490,7 @@ if SERVER then
 	//
 	// Adding path point
 	//
-	function AddPathPoint( _pos, _connection )
+	function AddPathPoint( _pos, _connection, _ent )
 	
 		local merge = false
 		local t_Mergered = false
@@ -477,9 +518,11 @@ if SERVER then
 				
 					local v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
 					
+					//print( v.case, v.index, v2.case, v2.index, v.pos:Distance( _pos ), not ( v.case == v2.case and v.index == v2.index ), ( v.pos:Distance( _pos ) < 10 and not cnr_traceLine( v.pos, _pos, replicatorNoCollideGroup_Witch ).Hit ) )
+					
 					if not ( v.case == v2.case and v.index == v2.index ) 
-						and v.pos:Distance( _pos ) < 50
-							and not traceLine( v.pos, v2pos, replicatorNoCollideGroup_Witch ).Hit then
+						and ( ( v.pos:Distance( _pos ) < 50 and not cnr_traceLine( v.pos, v2pos, replicatorNoCollideGroup_Witch ).Hit ) 
+							or ( v.pos:Distance( _pos ) < 10 and not cnr_traceLine( v.pos, _pos, replicatorNoCollideGroup_Witch ).Hit ) ) then
 					
 						if not m_pathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] then
 						
@@ -498,18 +541,21 @@ if SERVER then
 				end
 			end
 		end
-			
+		
+		
 		if ( table.Count( _connection ) == 0 or not t_Mergered ) and table.Count( t_pathPoints ) > 0 then
 		
-			local t_Case, t_Index = FindClosestPoint( _pos, 1 )
-
-			if t_Case != "" and t_Index > 0 
-				and m_pathPoints[ t_Case ][ t_Index ].pos:Distance( _pos ) < 50 
-					and not traceLine( _pos, m_pathPoints[ t_Case ][ t_Index ].pos, replicatorNoCollideGroup_Witch ).Hit then
+			local t_Next = false
+			local r_Case, r_Index = FindClosestPoint( _pos, 1 )
+			
+			if r_Case != "" and r_Index > 0 then
 				
-				merge = true
-				returnID = { case = t_Case, index = t_Index }
-				
+				if m_pathPoints[ r_Case ][ r_Index ].pos:Distance( _pos ) < 50 and not cnr_traceLine( _pos, m_pathPoints[ r_Case ][ r_Index ].pos, replicatorNoCollideGroup_Witch ).Hit then
+					
+					merge = true
+					returnID = { case = r_Case, index = r_Index }
+					
+				end
 			end
 		end
 		
@@ -530,11 +576,12 @@ if SERVER then
 			
 			returnID = { case = sCoord, index = m_ID }
 			
-			table.Add( m_pathPoints[ sCoord ], {{ pos = _pos, connection = {}, case = sCoord, index = m_ID }} )
+			if _ent and _ent:IsValid() then table.Add( m_pathPoints[ sCoord ], {{ pos = _pos, connection = {}, case = sCoord, index = m_ID, ent = _ent }} )
+			else table.Add( m_pathPoints[ sCoord ], {{ pos = _pos, connection = {}, case = sCoord, index = m_ID }} ) end
 			
 			for k, v in pairs( _connection ) do
 			
-				//local result = traceLine( _pos, m_pathPoints[ v.case ][ v.index ].pos, replicatorNoCollideGroup_Witch )
+				//local result = cnr_traceLine( _pos, m_pathPoints[ v.case ][ v.index ].pos, replicatorNoCollideGroup_Witch )
 
 				//if not result.Hit then
 
@@ -602,9 +649,9 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 
 		for k2, v2 in pairs( v ) do
 
-			render.SetMaterial( Material( "models/wireframe" ) )
-
-			render.DrawBox( v2.pos, Angle( ), -Vector( 1, 1, 1 ), Vector( 1, 1, 1 ), Color( 255, 255, 255 ), false ) 
+			render.SetColorMaterial()
+			if v2.ent then render.DrawBox( v2.pos, Angle( ), -Vector( 2, 2, 2 ), Vector( 2, 2, 2 ), Color( 255, 0, 0, 50 ), false ) 
+			else render.DrawBox( v2.pos, Angle( ), -Vector( 2, 2, 2 ), Vector( 2, 2, 2 ), Color( 255, 255, 255, 50 ), false ) end
 			
 			for k3, v3 in pairs( v2.connection ) do
 			
@@ -613,7 +660,7 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 					local p = m_pathPoints[ v3.case ][ v3.index ]
 					local vec = ( v2.pos - p.pos ):Angle()
 					
-					render.DrawLine( v2.pos + vec:Right() / 2, p.pos + vec:Right() / 2, Color( 255, 255, 255 ), false )
+					render.DrawLine( v2.pos + vec:Right() / 2, p.pos + vec:Right() / 2, Color( 255, 255, 255, 50 ), false )
 					
 				end
 				//else table.remove( m_pathPoints[ v2.case ].connection, k2 ) end

@@ -12,7 +12,9 @@ ENT.Category		= "Stargate"
 //if( CLIENT ) then killicon.Add( "ent_undertale_bone_throw", "undertale/killicon_bone", color_white ) end
 
 function ENT:Initialize()
+
 	if SERVER  then
+	
 		self:SetHealth( 150 )
 
 		self:SetModel( "models/stargate/replicators/replicator_segment.mdl" )
@@ -35,9 +37,12 @@ function ENT:Initialize()
 		local phys = self:GetPhysicsObject()
 		
 		if IsValid( phys ) then 
+		
 			phys:EnableGravity( true )
 			phys:Wake()
+			
 		end
+		
 	end //SERVER
 
 	if CLIENT then
@@ -62,7 +67,7 @@ if SERVER then
 		
 		self:SetHealth( self:Health() - damage )
 
-		if( self:Health() <= 0 ) then
+		if self:Health() <= 0 then
 			self:Remove()
 		end
 	end
@@ -93,10 +98,12 @@ if SERVER then
 							if table.Count( segments ) < g_segments_to_assemble_replicator then table.Add( segments, { v } ) 
 							elseif table.Count( segments ) + table.Count( save ) < g_segments_to_assemble_queen then
 								table.Add( save, { v } )
-								
+																
 								if table.Count( segments ) + table.Count( save ) == g_segments_to_assemble_queen then
+								
 									table.Add( segments, save )
 									self:SetVar( "rCraftingQueen", true )
+									
 								end
 								
 							end
@@ -121,7 +128,7 @@ if SERVER then
 					middle = ( middle / table.Count( segments ) )
 					
 					self:SetVar( "segments_middle", middle )
-					self:SetVar( "radius", 0 )
+					self.rRadius = 0
 				end
 			else
 				//self:SetColor( Color( 255, 0, 255 ) )
@@ -130,19 +137,21 @@ if SERVER then
 				local segments = self:GetVar( "assembling_segments" )
 				local middle = self:GetVar( "segments_middle" )
 				
-				self:SetVar( "radius", self:GetVar( "radius" ) + 10 )
+				if self.rRadius < 200 then self.rRadius = self.rRadius + self.rRadius / 10 + 5 else self.rRadius = 200 end
 				
 				local inx = 0
 
 				for k, v in ipairs( segments ) do
 
 					local vVel = v:GetVelocity()
-					if v:GetPos():Distance( middle ) < self:GetVar( "radius" ) and vVel.z < 10 then
+					
+					if v:GetPos():Distance( middle ) < self:GetVar( "rRadius" ) and vVel.z < 10 then
+					
 						local dir = ( middle - v:GetPos() )
 						dir = Vector( dir.x, dir.y, 0 )
 						
 						dir:Normalize()
-						dir = dir * 50
+						dir = dir * self.rRadius
 						
 						local phys = v:GetPhysicsObject()
 						phys:SetVelocity( Vector( dir.x, dir.y, vVel.z ))
@@ -150,18 +159,18 @@ if SERVER then
 						
 						local t_Rad
 
-						if not self:GetVar( "rCraftingQueen" ) then
-							t_Rad = 5
-						else
-							t_Rad = 10
+						if not self:GetVar( "rCraftingQueen" ) then t_Rad = 5
+						else t_Rad = 10
 						end
 						
 						if v:GetPos():Distance( middle ) < t_Rad + math.Rand( 0, 5 ) then
+						
 							phys:EnableMotion( false )
 							phys:EnableCollisions( false )
+							
 						end
 						
-						if v:GetPos():Distance( middle ) <= t_Rad + 5 then inx = inx + 1 end
+						if v:GetPos():Distance( middle ) <= t_Rad + 10 then inx = inx + 1 end
 						
 					end
 				end
