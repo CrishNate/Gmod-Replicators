@@ -1,5 +1,5 @@
 AddCSLuaFile( )
-include( "replicator_class.lua" )
+include( "replicator_class/replicator_class.lua" )
 
 ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
@@ -70,7 +70,7 @@ function ENT:Draw()
 	
 		if self:GetVar( "rEffectFrame" ) < 100 then self.rEffectFrame = effectTime + 4 else self.rEffectFrame = 100 end
 		local pos = self:GetPos() - self:GetForward() * 16 - self:GetUp() * 1
-		
+		/*
 		local dlight = DynamicLight( LocalPlayer():EntIndex() )
 		if ( dlight ) then
 			dlight.pos = pos
@@ -82,6 +82,7 @@ function ENT:Draw()
 			dlight.Size = 150
 			dlight.DieTime = CurTime() + 1
 		end
+		*/
 		
 		local emitter = ParticleEmitter( pos, false )
 
@@ -171,14 +172,7 @@ if SERVER then
 
 	function ENT:OnRemove()
 	
-		timer.Remove( "rWalking" .. self:EntIndex() )
-		timer.Remove( "rRun" .. self:EntIndex() )
-		timer.Remove( "rRotateBack" .. self:EntIndex() )
-		timer.Remove( "rScanner"..self:EntIndex() )
-		timer.Remove( "rChangingDirection" .. self:EntIndex() )
-		timer.Remove( "rEating" .. self:EntIndex() )		
-		timer.Remove( "rGiving"..self:EntIndex() )
-		timer.Remove( "rDamagining"..self:EntIndex() )
+		ReplicatorOnRemove( self )
 
 	end
 	

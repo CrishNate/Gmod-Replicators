@@ -52,34 +52,36 @@ end
 if SERVER then
 
 	//
-	// Hit sounds
+	// ============================ Hit sounds
 	//
-
 	
 	function ENT:PhysicsCollide( data, phys )
+	
 		if data.Speed > 200 then self:EmitSound( "weapons/fx/tink/shotgun_shell"..math.random( 1, 3 )..".wav", 60, 175 + math.Rand( -25, 25 ), 1, CHAN_AUTO ) end
+		
 	end
 	
 	
 	function ENT:OnTakeDamage( dmginfo )
+	
 		//self:TakeDamage( dmginfo:GetDamage(), "", "" )
 		local damage = dmginfo:GetDamage()
 		
 		self:SetHealth( self:Health() - damage )
 
-		if self:Health() <= 0 then
-			self:Remove()
-		end
+		if self:Health() <= 0 then self:Remove() end
 	end
 	
 	function ENT:Think()
+	
 		//
-		// Assembling segments it to a replicator
+		// =========================== Assembling segments it to a replicator
 		//
 
 		if( !self:GetVar( "used" ):IsValid() ) then
 
 			if( !self:GetVar( "assembling" ) ) then
+			
 				self:NextThink( CurTime() + 1 )
 				
 				local result = ents.FindInSphere( self:GetPos(), 200 )
@@ -89,6 +91,7 @@ if SERVER then
 				table.Add( segments, { self } )
 				
 				for k, v in ipairs( result ) do
+				
 					if( v:GetClass() == "replicator_segment" and 
 							v:GetVelocity():Length() < 10 and 
 								!v:GetVar( "assembling" ) and !v:GetVar( "used" ):IsValid() and v != self ) then
@@ -98,7 +101,7 @@ if SERVER then
 							if table.Count( segments ) < g_segments_to_assemble_replicator then table.Add( segments, { v } ) 
 							elseif table.Count( segments ) + table.Count( save ) < g_segments_to_assemble_queen then
 								table.Add( save, { v } )
-																
+								
 								if table.Count( segments ) + table.Count( save ) == g_segments_to_assemble_queen then
 								
 									table.Add( segments, save )
@@ -109,6 +112,7 @@ if SERVER then
 							end
 							
 						elseif v:GetVar( "rCraftingQueen" ) and table.Count( segments ) < g_segments_to_assemble_queen then table.Add( segments, { v } ) end
+						
 					end
 				end
 				
@@ -121,8 +125,10 @@ if SERVER then
 					local middle = Vector( 0, 0, 0 )
 					
 					for k, v in ipairs( segments ) do
+					
 						middle = middle + v:GetPos()
 						if v != self then v:SetVar( "used", self ) end
+						
 					end
 					
 					middle = ( middle / table.Count( segments ) )
@@ -130,16 +136,26 @@ if SERVER then
 					self:SetVar( "segments_middle", middle )
 					self.rRadius = 0
 				end
+				
 			else
+			
 				//self:SetColor( Color( 255, 0, 255 ) )
 				self:NextThink( CurTime() + 0.1 )
 
 				local segments = self:GetVar( "assembling_segments" )
 				local middle = self:GetVar( "segments_middle" )
 				
-				if self.rRadius < 200 then self.rRadius = self.rRadius + self.rRadius / 10 + 5 else self.rRadius = 200 end
+				if self.rRadius < 300 then self.rRadius = self.rRadius + self.rRadius / 10 + 5 else self.rRadius = 300 end
 				
 				local inx = 0
+
+				if not self.rAssebleSound then
+				
+					if not self.rCraftingQueen then self:EmitSound( "replicators/repassembling.wav", 60, 100 + math.Rand( 0, 10 ), 1, CHAN_AUTO )
+					else self:EmitSound( "replicators/repassembling.wav", 60, 70 + math.Rand( 0, 10 ), 1, CHAN_AUTO ) end
+					self.rAssebleSound = true
+					
+				end
 
 				for k, v in ipairs( segments ) do
 
@@ -151,7 +167,7 @@ if SERVER then
 						dir = Vector( dir.x, dir.y, 0 )
 						
 						dir:Normalize()
-						dir = dir * self.rRadius
+						dir = dir * math.min( 200, self.rRadius )
 						
 						local phys = v:GetPhysicsObject()
 						phys:SetVelocity( Vector( dir.x, dir.y, vVel.z ))
@@ -159,9 +175,8 @@ if SERVER then
 						
 						local t_Rad
 
-						if not self:GetVar( "rCraftingQueen" ) then t_Rad = 5
-						else t_Rad = 10
-						end
+						if not self.rCraftingQueen then t_Rad = 5
+						else t_Rad = 10 end
 						
 						if v:GetPos():Distance( middle ) < t_Rad + math.Rand( 0, 5 ) then
 						
@@ -175,23 +190,27 @@ if SERVER then
 					end
 				end
 				
-				//------------- Spawning replicator
+				// ====================== Spawning replicator
 				
-				if not self:GetVar( "rCraftingQueen" ) and inx == g_segments_to_assemble_replicator
-					or self:GetVar( "rCraftingQueen") and inx == g_segments_to_assemble_queen then
+				if not self.rCraftingQueen and inx == g_segments_to_assemble_replicator
+					or self.rCraftingQueen and inx == g_segments_to_assemble_queen then
 					
 					local ent
 					local t_Height
 					local t_AddTime
 					
-					if not self:GetVar( "rCraftingQueen" ) then
+					if not self.rCraftingQueen then
+					
 						ent = ents.Create( "replicator_worker" )
 						t_Height = 6
 						t_AddTime = 0.5
+						
 					else
+					
 						ent = ents.Create( "replicator_queen" )
 						t_Height = 13
 						t_AddTime = 4
+						
 					end
 					
 					if ( !IsValid( ent ) ) then return end

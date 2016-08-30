@@ -1,5 +1,5 @@
 AddCSLuaFile( )
-include( "replicator_class.lua" )
+include( "replicator_class/replicator_class.lua" )
 
 ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
@@ -31,6 +31,7 @@ function ENT:Initialize()
 		
 	end // CLIENT
 
+	
 	ReplicatorInitialize( self )
 	
 end
@@ -122,14 +123,7 @@ if SERVER then
 
 	function ENT:OnRemove()
 	
-		timer.Remove( "rWalking" .. self:EntIndex() )
-		timer.Remove( "rRun" .. self:EntIndex() )
-		timer.Remove( "rRotateBack" .. self:EntIndex() )
-		timer.Remove( "rScanner"..self:EntIndex() )
-		timer.Remove( "rChangingDirection" .. self:EntIndex() )
-		timer.Remove( "rEating" .. self:EntIndex() )
-		timer.Remove( "rGiving"..self:EntIndex() )
-		timer.Remove( "rDamagining"..self:EntIndex() )
+		ReplicatorOnRemove( self )
 
 	end
 	

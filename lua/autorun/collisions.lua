@@ -7,10 +7,11 @@ local replicatorNoCollideGroup = {
 replicatorNoCollideGroup_Witch = {
 	"replicator_segment",
 	"replicator_queen",
-	"replicator_worker"
+	"replicator_worker",
+	"npc_bullseye"
 }
 
-function cnr_traceHull( startpos, endpos, rad, ignore )
+function CNRTraceHull( startpos, endpos, rad, ignore )
 	local tr = util.TraceHull( {
 		start = startpos,
 		endpos = endpos,
@@ -28,7 +29,7 @@ function cnr_traceHull( startpos, endpos, rad, ignore )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-function cnr_traceHullQuick( startpos, dir, rad, ignore )
+function CNRTraceHullQuick( startpos, dir, rad, ignore )
 	local tr = util.TraceHull( {
 		start = startpos,
 		endpos = startpos + dir,
@@ -46,7 +47,7 @@ function cnr_traceHullQuick( startpos, dir, rad, ignore )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-function cnr_traceQuick( startpos, dir, ignore )
+function CNRTraceQuick( startpos, dir, ignore )
 	local tr = util.QuickTrace(
 		startpos, dir,
 		function( ent ) 
@@ -61,7 +62,7 @@ function cnr_traceQuick( startpos, dir, ignore )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-function cnr_traceLine( startpos, endpos, ignore )
+function CNRTraceLine( startpos, endpos, ignore )
 	local tr = util.TraceLine( {
 		start = startpos,
 		endpos = endpos,
