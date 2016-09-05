@@ -118,7 +118,7 @@ function ENT:Draw()
 	local tr = traceHullQuick( 
 		self:GetPos() + self:GetUp() * 4, 
 		self:GetForward() * 20, 
-		Vector( 8, 8, 8 ), replicatorNoCollideGroup_Witch )
+		Vector( 8, 8, 8 ), replicatorNoCollideGroup_With )
 
 	render.DrawLine( tr.HitPos, startpos + dir * len, color_white, true )
 	render.DrawLine( startpos, tr.HitPos, Color( 0, 0, 255 ), true )

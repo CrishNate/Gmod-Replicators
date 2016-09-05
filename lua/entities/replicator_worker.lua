@@ -65,7 +65,7 @@ function ENT:Draw()
 
 	local tr, trD = cnr_traceHullQuick( 
 				self:GetPos(), -self:GetUp() * 20,
-				Vector( 6, 6, 6 ), replicatorNoCollideGroup_Witch )
+				Vector( 6, 6, 6 ), replicatorNoCollideGroup_With )
 		
 	if tr.Hit then print( trD ) end
 	render.DrawLine( tr.HitPos, startpos + dir * len, color_white, true )

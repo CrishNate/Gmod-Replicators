@@ -26,11 +26,11 @@ if SERVER then
 						
 						if self:IsValid() then
 						
-							local t_TargetMetalId = self.rTargetMetalId
-							local t_TargetDarkId = self.rTargetDarkId
+							local t_MetalId = self.rTargetMetalId
+							local t_DarkId = self.rTargetDarkId
 							
-							if t_TargetMetalId and t_TargetMetalId != "" then m_metalPoints[ t_TargetMetalId ].used = false end
-							if t_TargetDarkId and t_TargetDarkId != "" then m_darkPoints[ t_TargetDarkId ].used = false end
+							if m_metalPoints[ t_MetalId ] and m_metalPoints[ t_MetalId ].used then m_metalPoints[ t_MetalId ].used = false end
+							if m_darkPoints[ t_DarkId ] and m_darkPoints[ t_DarkId ].used then m_darkPoints[ t_DarkId ].used = false end
 
 							self.rResearch = true
 							
@@ -54,7 +54,8 @@ if SERVER then
 								MsgC( Color( 255, 255, 0 ), "Bad Point", case, " ", index, " ", m_pointIsInvalid[ case ][ index ], "\n" )
 								
 							end
-							MsgC( Color( 255, 255, 0 ), t_MoveStep, " ", table.Count( t_MovePath ), " ", not m_pathPoints[ case ], "\n" )
+							
+						//	MsgC( Color( 255, 255, 0 ), t_MoveStep, " ", table.Count( t_MovePath ), " ", not m_pathPoints[ case ], "\n" )
 							
 						end
 					end )
@@ -86,7 +87,7 @@ if SERVER then
 					
 						self.rMoveTo = t_MToPos
 						
-					elseif t_MoveStep > 1 and not CNRTraceLine( t_MToPos, t_DistTo, replicatorNoCollideGroup_Witch ).Hit then
+					elseif t_MoveStep > 1 and not CNRTraceLine( t_MToPos, t_DistTo, replicatorNoCollideGroup_With ).Hit then
 					
 						self.rMoveStep = t_MoveStep - 1
 						timer.Start( "rRefind"..self:EntIndex() )
@@ -99,7 +100,6 @@ if SERVER then
 							
 								m_pointIsInvalid[ case ][ index ] = 0
 								MsgC( Color( 0, 255, 0 ), "Fixing Point", case, " ", index, " ", m_pointIsInvalid[ case ][ index ], "\n" )
-								
 							end
 						end
 					end
@@ -126,7 +126,7 @@ if SERVER then
 					if t_MToPos:Distance( t_DistTo ) > t_Dist then
 						self.rMoveTo = t_MToPos
 						
-					elseif t_MoveStep < table.Count( t_MovePath ) and not CNRTraceLine( t_MToPos, t_DistTo, replicatorNoCollideGroup_Witch ).Hit then
+					elseif t_MoveStep < table.Count( t_MovePath ) and not CNRTraceLine( t_MToPos, t_DistTo, replicatorNoCollideGroup_With ).Hit then
 					
 						self.rMoveStep = t_MoveStep + 1
 						timer.Start( "rRefind"..self:EntIndex() )

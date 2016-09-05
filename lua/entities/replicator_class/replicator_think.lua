@@ -1,4 +1,5 @@
 AddCSLuaFile( )
+include( "replicator_path_moving.lua" )
 
 if SERVER then
 
@@ -19,7 +20,7 @@ if SERVER then
 				
 				trace = CNRTraceQuick( 
 				v:WorldSpaceCenter(), dir * v:GetModelRadius(),
-				replicatorNoCollideGroup_Witch )
+				replicatorNoCollideGroup_With )
 				
 				if trace.MatType == MAT_METAL and v:IsValid() and not m_metalPointsAsigned[ "_"..v:EntIndex() ] then AddMetalEntity( v ) end
 				
@@ -84,13 +85,13 @@ if SERVER then
 		
 			ground, groundDist = CNRTraceHullQuick( 
 				self:GetPos() + self:GetUp() * 15, -self:GetUp() * 30,
-				Vector( 6, 6, 6 ), replicatorNoCollideGroup_Witch )
+				Vector( 6, 6, 6 ), replicatorNoCollideGroup_With )
 				
 		elseif replicatorType == 2 then
 		
 			ground, groundDist = CNRTraceHullQuick( 
 				self:GetPos() + self:GetUp() * 10, -self:GetUp() * 40,
-				Vector( 8, 8, 8 ), replicatorNoCollideGroup_Witch )		
+				Vector( 8, 8, 8 ), replicatorNoCollideGroup_With )		
 		
 		end
 
@@ -109,8 +110,6 @@ if SERVER then
 		local t_Offset = Vector()
 		local t_AngleOffset = Angle()
 		
-		//print( h_Mode, h_ModeStatus, h_Research )
-		
 		//
 		// ============================ Modes
 		//
@@ -118,6 +117,20 @@ if SERVER then
 		// ============================= Research mode
 		if h_Research then
 		
+			//print( h_Mode, h_ModeStatus )
+			// ==================== Redirecting when stuck
+			
+			local t_Name = "rRotateBack" .. self:EntIndex()
+			
+			if not timer.Exists( t_Name ) then
+				
+				timer.Create( t_Name, 4, 0, function()
+				
+					if self:IsValid() then self:SetAngles( self:LocalToWorldAngles( Angle( 0, 90, 0 ) ) ) end
+					
+				end )
+			end
+			
 			//print( h_Mode, h_ModeStatus )
 			
 			self.rMove = true
@@ -135,9 +148,8 @@ if SERVER then
 					if self:IsValid() then self.rYawRot = math.Rand( 3, -3 ) end
 					
 				end )
-				
 			end
-			
+						
 			// ===================== Setting path to metal
 			
 			local t_rMetalAmount = self.rMetalAmount
@@ -146,7 +158,7 @@ if SERVER then
 			local targetEnt = self.rTargetEnt
 
 			if table.Count( m_metalPoints ) > 0 and table.Count( h_PrevInfo ) > 0 
-				and ( h_Mode == 0 or h_Mode == 1 ) and ( h_ModeStatus == 0 or h_ModeStatus == 1 )
+				and ( h_Mode == 0 or ( h_Mode == 1 and ( h_ModeStatus == 0 or h_ModeStatus == 1 ) ) )
 					and not timer.Exists( t_Name ) then
 				
 				timer.Create( t_Name, math.Rand( 5, 5 ), 1, function() end )
@@ -166,6 +178,7 @@ if SERVER then
 					//print( "Scanned" )
 					
 					timer.Remove( "rRotateBack"..self:EntIndex() )
+					timer.Remove( "rScannerDark"..self:EntIndex() )
 					timer.Remove( "rScanner"..self:EntIndex() )
 
 					self.rResearch = false
@@ -184,7 +197,7 @@ if SERVER then
 			local t_Name = "rScannerDark"..self:EntIndex()
 			
 			if ( h_Mode == 1 and h_ModeStatus == 2 or h_Mode == 4 ) and table.Count( m_darkPoints ) > 0 and not timer.Exists( t_Name ) then
-			
+				
 				timer.Create( t_Name, math.Rand( 5, 5 ), 1, function()
 
 					if self:IsValid() then
@@ -193,15 +206,16 @@ if SERVER then
 						self.rMode = 1
 						self.rModeStatus = 2
 
-						timer.Remove( "rRotateBack" .. self:EntIndex() )
-						timer.Remove( "rScanner" .. self:EntIndex() )
-						timer.Remove( "rScannerDark" .. self:EntIndex() )
+						timer.Remove( "rRotateBack"..self:EntIndex() )
+						timer.Remove( "rScanner"..self:EntIndex() )
+						timer.Remove( "rScannerDark"..self:EntIndex() )
 						
 					end
 				end )				
 			end
 			
 			// =================== Attack enemies
+			
 			if table.Count( m_attackers ) > 0 and not timer.Exists( t_Name ) then
 				
 				local t_PathResult, t_TargetEnt, t_TargetId
@@ -224,6 +238,7 @@ if SERVER then
 					
 					timer.Remove( "rRotateBack" .. self:EntIndex() )
 					timer.Remove( "rScanner" .. self:EntIndex() )
+					timer.Remove( "rScannerDark"..self:EntIndex() )
 
 					self.rResearch = false
 					self.rMoveStep = 1
@@ -234,29 +249,9 @@ if SERVER then
 					self.rMovePath = t_PathResult
 					
 				end
-				
-			end
-			
-			// ====================Redirecting when stuck
-			local t_Name = "rRotateBack" .. self:EntIndex()
-			
-			if not timer.Exists( t_Name ) then
-				
-				timer.Create( t_Name, 4, 0, function()
-				
-					if self:IsValid() then
-					
-						//h_phys = self:GetPhysicsObject()
-						//h_phys:AddVelocity( -self:GetForward() * 100 )
-						self:SetAngles( self:LocalToWorldAngles( Angle( 0, 90, 0 ) ) )
-						
-					end
-				end )
 			end
 			
 			local t_MoveTo = self:GetPos() + self:GetForward() * 40 + self:GetRight() * h_YawRot
-			
-		
 			self.rMoveTo = t_MoveTo
 			
 		else
@@ -341,6 +336,7 @@ if SERVER then
 
 								// --------- Next Step
 								if not ( t_rMetalAmount + t_Amount < g_segments_to_assemble_replicator
+								
 									or table.Count( m_queenCount ) == 0 and t_rMetalAmount + t_Amount < ( g_segments_to_assemble_queen - g_segments_to_assemble_replicator )) then
 
 									timer.Remove( "rEating"..self:EntIndex() )
@@ -352,11 +348,12 @@ if SERVER then
 
 									//h_phys:EnableMotion( true )
 									if mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() then constraint.RemoveAll( self ) end
+									
 								end
 								
 								if t_targetMetalAmount == 0 then
 									
-									MsgC( Color( 0, 255, 255 ), "AMOUNT 0\n" )
+									//MsgC( Color( 0, 255, 255 ), "AMOUNT 0\n" )
 									
 									timer.Remove( "rEating"..self:EntIndex() )
 									
@@ -393,7 +390,7 @@ if SERVER then
 								
 								t_rMetalAmount = t_rMetalAmount + t_Amount
 								
-								MsgC( Color( 150, 150, 255 ), "Eat metal " ,t_Amount, " ", t_targetMetalAmount, " ", t_rMetalAmount, "\n" )
+								//MsgC( Color( 150, 150, 255 ), "Eat metal " ,t_Amount, " ", t_targetMetalAmount, " ", t_rMetalAmount, "\n" )
 								self.rMetalAmount = t_rMetalAmount
 								
 							end
@@ -413,10 +410,10 @@ if SERVER then
 						local t_PathResult
 						local t_QueenEnt = Entity( 0 )
 						
-						if self.rTargetEnt:IsValid() then
+						if self.rTargetGueen:IsValid() then
 						
 							t_PathResult = self.rMovePath
-							t_QueenEnt = self.rTargetEnt
+							t_QueenEnt = self.rTargetGueen
 							
 							self.rMoveReverse = false
 						else
@@ -435,7 +432,7 @@ if SERVER then
 							self.rMode = 1
 							self.rModeStatus = 3
 							
-							self.rTargetEnt = t_QueenEnt
+							self.rTargetGueen = t_QueenEnt
 							
 							self.rMove = true
 							self.rMoveMode = 1
@@ -449,6 +446,12 @@ if SERVER then
 						
 					elseif not t_QueenFounded then
 					
+						local t_MetalId = self.rTargetMetalId
+						//print( "____", t_MetalId )
+						//PrintTable( m_metalPoints[ t_MetalId ] )
+						
+						if m_metalPoints[ t_MetalId ] and m_metalPoints[ t_MetalId ].used then m_metalPoints[ t_MetalId ].used = false end
+						
 						if table.Count( m_darkPoints ) > 0 then
 							
 							local t_MetalId = self.rTargetMetalId
@@ -456,8 +459,7 @@ if SERVER then
 							if m_metalPoints[ t_MetalId ].used then m_metalPoints[ t_MetalId ].used = false end
 							
 							local r_Case, r_Index = FindClosestPoint( self:GetPos(), 1 )
-							
-							local t_PathResult, t_DarkId = GetPatchWayToClosestId( { case = r_Case, index = r_Index } )
+							local t_PathResult, t_DarkId = GetPatchWayToClosestId( { case = r_Case, index = r_Index }, m_darkPoints )
 							
 							if table.Count( t_PathResult ) > 0 then
 							
@@ -484,7 +486,7 @@ if SERVER then
 				elseif h_ModeStatus == 3 then
 				
 					// ======================= Wait until replicator walked to queen
-					local t_QueenEnt = self.rTargetEnt
+					local t_QueenEnt = self.rTargetGueen
 					
 					if t_QueenEnt:GetPos():Distance( self:GetPos() ) < 40 then
 					
@@ -507,7 +509,7 @@ if SERVER then
 							
 								self:NextThink( CurTime() )
 							
-								local t_QueenEnt = self.rTargetEnt
+								local t_QueenEnt = self.rTargetGueen
 
 								local t_rMetalAmount = math.min( g_replicator_giving_speed, self.rMetalAmount )
 								
@@ -537,7 +539,6 @@ if SERVER then
 				
 			elseif h_Mode == 2 then // ======================= ATTACK MODE
 			
-				
 				if h_ModeStatus == 0 then
 				
 					local target = m_attackers[ self.rTargetId ]
@@ -545,7 +546,7 @@ if SERVER then
 					if target and target:IsValid() then
 					
 						local filter = { }
-						table.Add( filter, replicatorNoCollideGroup_Witch )
+						table.Add( filter, replicatorNoCollideGroup_With )
 						table.Add( filter, { "player" } )
 						
 						local trace, trDist = CNRTraceLine( self:GetPos(), target:GetPos(), filter )
@@ -615,15 +616,11 @@ if SERVER then
 						
 						h_phys:EnableCollisions( true )
 						
-						print( targetCase )
-						
 						if target then
 						
 							m_attackers[ targetCase ] = nil
 							
 						end
-						
-						PrintTable( m_attackers )
 					end
 
 					if not timer.Exists( name ) then
@@ -794,14 +791,14 @@ if SERVER then
 							forward, forwardDist = CNRTraceHullQuick( 
 								self:GetPos() + self:GetUp() * 2, 
 								self:GetForward() * 20, 
-								Vector( 6, 6, 6 ), replicatorNoCollideGroup_Witch )
+								Vector( 6, 6, 6 ), replicatorNoCollideGroup_With )
 
 						elseif replicatorType == 2 then
 						
 							forward, forwardDist = CNRTraceHullQuick( 
 								self:GetPos() + self:GetUp() * 4, 
 								self:GetForward() * 20, 
-								Vector( 6, 6, 6 ), replicatorNoCollideGroup_Witch )
+								Vector( 6, 6, 6 ), replicatorNoCollideGroup_With )
 						end
 
 						if forward.Hit then
@@ -823,14 +820,14 @@ if SERVER then
 								fordown, fordownDist = CNRTraceHullQuick( 
 									self:GetPos() + self:GetForward() * 10, 
 									-self:GetUp() * 10,
-									Vector( 6, 6, 6 ), replicatorNoCollideGroup_Witch )
+									Vector( 6, 6, 6 ), replicatorNoCollideGroup_With )
 									
 							elseif replicatorType == 2 then
 							
 								fordown, fordownDist = CNRTraceHullQuick( 
 									self:GetPos() + self:GetForward() * 20, 
 									-self:GetUp() * 10, 
-									Vector( 10, 10, 10 ), replicatorNoCollideGroup_Witch )
+									Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
 							end
 							
 							if not fordown.Hit then
@@ -894,14 +891,14 @@ if SERVER then
 						ceiling = CNRTraceHullQuick( 
 							self:GetPos(), 
 							self:GetUp() * 15, 
-							Vector( 15, 15, 15 ), replicatorNoCollideGroup_Witch )
+							Vector( 15, 15, 15 ), replicatorNoCollideGroup_With )
 							
 					elseif replicatorType == 2 then
 					
 						ceiling = CNRTraceHullQuick( 
 							self:GetPos(), 
 							self:GetUp() * 15, 
-							Vector( 20, 20, 20 ), replicatorNoCollideGroup_Witch )
+							Vector( 20, 20, 20 ), replicatorNoCollideGroup_With )
 					end
 						
 					//if ceiling.Hit then
@@ -980,7 +977,7 @@ if SERVER then
 
 					else
 					
-						local trace, trDist = CNRTraceLine( self:GetPos(), point.pos, replicatorNoCollideGroup_Witch )
+						local trace, trDist = CNRTraceLine( self:GetPos(), point.pos, replicatorNoCollideGroup_With )
 
 						if trace.Hit and trDist > 0 then
 						

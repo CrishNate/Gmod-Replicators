@@ -44,12 +44,10 @@ end )
 */
 
 //local endPOS
-/*
+
 hook.Add( "EntityTakeDamage", "ReplicatorGetDamaged", function( target, dmginfo )
 
-	if target:GetClass() == "replicator_queen" 
-		or target:GetClass() == "replicator_worker"
-			or target:GetClass() == "npc_bullseye" and target.rReplicatorsNPCTarget then
+	if target:GetClass() == "npc_bullseye" and target.rReplicatorsNPCTarget then
 	
 		local attacker = dmginfo:GetAttacker()
 		
@@ -63,7 +61,6 @@ hook.Add( "EntityTakeDamage", "ReplicatorGetDamaged", function( target, dmginfo 
 	end
 
 end )
-*/
 
 hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key ) 
 
@@ -77,6 +74,7 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 			
 		end
 		
+		if key == IN_RUN then PrintTable( m_metalPoints ) end
 		
 		if key == IN_RELOAD then endPOS = ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10 print( endPOS ) end
 
@@ -97,7 +95,6 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 			
 			net.Start( "debug_render_rerpl" ) net.WriteTable( result ) net.Broadcast()
 		end
-		
 	end
 end )
 
@@ -167,20 +164,24 @@ if SERVER then
 	end
 
 	
-	function CNRTestForFloor( startpos, endpos, divPerUnit, dir )
+	function CNRTestForFloor( startpos, endpos, divPerUnit, dir, hullrad )
 	
 		local count = math.Round( startpos:Distance( endpos ) / divPerUnit )
-		
-		local result = true
 		
 		local direction = endpos - startpos
 		direction:Normalize()
 		
 		for i = 0, count do
 		
-			if not CNRTraceHullQuick( startpos + direction * divPerUnit * i, dir, Vector( 5, 5, 5 ), replicatorNoCollideGroup_Witch ).Hit then result = false end
+			if not CNRTraceHullQuick( startpos + direction * divPerUnit * i, dir, hullrad, replicatorNoCollideGroup_With ).Hit then
+			
+				return false
+				
+			end
 			
 		end
+		
+		return true
 	end
 	
 	//
@@ -209,7 +210,7 @@ if SERVER then
 		
 		local t_First = true
 		for k, v in pairs( t_pathPoints ) do
-			local tracer = CNRTraceLine( v.pos, pos, replicatorNoCollideGroup_Witch )
+			local tracer = CNRTraceLine( v.pos, pos, replicatorNoCollideGroup_With )
 			
 			if not tracer.Hit then
 			
@@ -268,7 +269,7 @@ if SERVER then
 				
 					local trace = CNRTraceHullQuick( 
 						pPoint.pos, Vector(),
-						Vector( 10, 10, 10 ), replicatorNoCollideGroup_Witch )
+						Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
 						
 					if trace.Hit then
 						
@@ -282,7 +283,7 @@ if SERVER then
 				end
 				
 				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) then
+						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -338,7 +339,7 @@ if SERVER then
 				
 					local trace = CNRTraceHullQuick( 
 						pPoint.pos, Vector(),
-						Vector( 10, 10, 10 ), replicatorNoCollideGroup_Witch )
+						Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
 						
 					if trace.Hit then
 						
@@ -352,7 +353,7 @@ if SERVER then
 				end
 				
 				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) then
+						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -370,7 +371,9 @@ if SERVER then
 
 							for k3, v3 in pairs( entTable ) do
 							
-								if v3:IsValid() and t_v2pos:Distance( v3:GetPos() ) < math.max( 100, v3:GetModelRadius() ) and not CNRTraceLine( v3:GetPos(), t_v2pos, replicatorNoCollideGroup_Witch ).Hit then
+								if v3:IsValid() and t_v2pos:Distance( v3:GetPos() ) < 500
+									and not CNRTraceLine( t_v2pos, v3:GetPos(), replicatorNoCollideGroup_With ).Hit 
+										and CNRTestForFloor( t_v2pos, v3:GetPos(), 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 									
 									return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3:GetPos() } ), v3, k3
 
@@ -419,7 +422,7 @@ if SERVER then
 				
 					local trace = CNRTraceHullQuick( 
 						pPoint.pos, Vector(),
-						Vector( 10, 10, 10 ), replicatorNoCollideGroup_Witch )
+						Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
 						
 					if trace.Hit then
 						
@@ -447,11 +450,13 @@ if SERVER then
 							t_LinksHistory[ v2.case ][ v2.index ] = { { case = v2.case, index = v2.index } }
 							table.Add( t_LinksHistory[ v2.case ][ v2.index ], t_LinksHistory[ v.case ][ v.index ] )
 							
-							local t_v2pos = pPoint.pos
+							local v2pos = pPoint.pos
 							
 							for k3, v3 in pairs( m_darkPoints ) do
 								
-								if t_v2pos:Distance( v3.pos ) < 50 and not v3.used and not CNRTraceLine( v3.pos, t_v2pos, replicatorNoCollideGroup_Witch ).Hit then
+								if not v3.used and v2pos:Distance( v3.pos ) < 500
+									and not CNRTraceLine( v2pos, v3.pos, replicatorNoCollideGroup_With ).Hit 
+										and CNRTestForFloor( v2pos, v3.pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 									
 									return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
 
@@ -469,7 +474,6 @@ if SERVER then
 		
 		return {}, 0
 	end
-
 
 	//
 	// Getting Path in Replicators Net Work to metal
@@ -498,7 +502,7 @@ if SERVER then
 				
 					local trace = CNRTraceHullQuick( 
 						pPoint.pos, Vector(),
-						Vector( 10, 10, 10 ), replicatorNoCollideGroup_Witch )
+						Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
 						
 					if trace.Hit then
 						
@@ -529,14 +533,15 @@ if SERVER then
 							local v2pos = pPoint.pos
 							
 							for k3, v3 in pairs( m_metalPoints ) do
-								
+							
 								if v3.ent then
 								
 									if v3.ent:IsValid() then
 									
 										local v3pos = v3.ent:WorldSpaceCenter()
-										
-										if v2pos:Distance( v3pos ) < math.max( 100, v3.ent:GetModelRadius() ) and CNRTraceLine( v2pos, v3.pos, replicatorNoCollideGroup_Witch ).Hit then
+												
+										if v2pos:Distance( v3pos ) < 500 
+											and not CNRTraceLine( v2pos, v3pos, replicatorNoCollideGroup_With, { v3.ent } ).Hit then
 											
 											return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
 											
@@ -545,8 +550,11 @@ if SERVER then
 									
 								else
 
-									if v2pos:Distance( v3.pos ) < 50 and not v3.used and not CNRTraceLine( v2pos, v3.pos, replicatorNoCollideGroup_Witch ).Hit then
-										
+									local v3pos = v3.pos
+									
+									if not v3.used and v2pos:Distance( v3pos ) < 500
+										and not CNRTraceLine( v3pos, v2pos, replicatorNoCollideGroup_With ).Hit then
+									
 										return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
 										
 									end
@@ -599,7 +607,7 @@ if SERVER then
 		m_metalPoints[ _stringp ] = { pos = _pos, normal = _normal, amount = _amount, used = false }
 		m_metalPointsAsigned[ _stringp ] = true
 		
-		local t_tracer = CNRTraceQuick( _pos, -_normal * 20, replicatorNoCollideGroup_Witch )
+		local t_tracer = CNRTraceQuick( _pos, -_normal * 20, replicatorNoCollideGroup_With )
 				
 		net.Start( "add_metal_points" )
 		
@@ -641,11 +649,11 @@ if SERVER then
 				
 					local v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
 					
-					//print( v.case, v.index, v2.case, v2.index, v.pos:Distance( _pos ), not ( v.case == v2.case and v.index == v2.index ), ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, replicatorNoCollideGroup_Witch ).Hit ) )
+					//print( v.case, v.index, v2.case, v2.index, v.pos:Distance( _pos ), not ( v.case == v2.case and v.index == v2.index ), ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, replicatorNoCollideGroup_With ).Hit ) )
 					
 					if not ( v.case == v2.case and v.index == v2.index ) 
-						and ( ( v.pos:Distance( _pos ) < 50 and not CNRTraceLine( v.pos, v2pos, replicatorNoCollideGroup_Witch ).Hit ) 
-							or ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, replicatorNoCollideGroup_Witch ).Hit ) ) then
+						and ( ( v.pos:Distance( _pos ) < 50 and not CNRTraceLine( v.pos, v2pos, replicatorNoCollideGroup_With ).Hit ) 
+							or ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, replicatorNoCollideGroup_With ).Hit ) ) then
 					
 						if not m_pathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] then
 						
@@ -673,7 +681,7 @@ if SERVER then
 			
 			if r_Case != "" and r_Index > 0 then
 				
-				if m_pathPoints[ r_Case ][ r_Index ].pos:Distance( _pos ) < 50 and not CNRTraceLine( _pos, m_pathPoints[ r_Case ][ r_Index ].pos, replicatorNoCollideGroup_Witch ).Hit then
+				if m_pathPoints[ r_Case ][ r_Index ].pos:Distance( _pos ) < 50 and not CNRTraceLine( _pos, m_pathPoints[ r_Case ][ r_Index ].pos, replicatorNoCollideGroup_With ).Hit then
 					
 					merge = true
 					returnID = { case = r_Case, index = r_Index }
@@ -704,7 +712,7 @@ if SERVER then
 			
 			for k, v in pairs( _connection ) do
 			
-				//local result = CNRTraceLine( _pos, m_pathPoints[ v.case ][ v.index ].pos, replicatorNoCollideGroup_Witch )
+				//local result = CNRTraceLine( _pos, m_pathPoints[ v.case ][ v.index ].pos, replicatorNoCollideGroup_With )
 
 				//if not result.Hit then
 

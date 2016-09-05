@@ -2,7 +2,7 @@ AddCSLuaFile( )
 
 if SERVER then
 
-	REPLICATOR.ReplicatorInitialize = function( self )
+	function ReplicatorInitialize( self )
 		
 		local phys = self:GetPhysicsObject()
 
@@ -17,6 +17,7 @@ if SERVER then
 		self.rMoveStep = 0
 		
 		self.rTargetEnt = Entity( 0 )
+		self.rTargetGueen = Entity( 0 )
 
 		self.rTargetMetalId = "" 
 		self.rTargetDarkId = ""
@@ -69,7 +70,7 @@ if SERVER then
 		
 		// ======== Spawning NPCTarget entity
 		local target = ents.Create( "npc_bullseye" )
-		target:SetPos( self:GetPos() )
+		target:SetPos( self:LocalToWorld( Vector( 0, 0, self:OBBMaxs().z ) ) )
 		target:SetModel( "models/Combine_Helicopter/helicopter_bomb01.mdl" )
 		target:SetMaterial( "models/shiny")
 		target:Spawn()
