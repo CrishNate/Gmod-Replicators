@@ -277,32 +277,32 @@ if SERVER then
 					
 					if ground.HitPos:Distance( mPointPos ) < 50 then self.rMoveMode = 0
 					else self.rMoveMode = 1 end
+					
+					//print( ground.MatType == MAT_METAL, ( ground.HitWorld and ground.HitPos:Distance( mPointPos ) ) < 20, ( mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() and ground.Entity == mPointInfo.ent ))
+						
+					if ground.MatType == MAT_METAL and ( ( ground.HitWorld and ground.HitPos:Distance( mPointPos ) < 20 )
+						or ( mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() and ground.Entity == mPointInfo.ent ) ) then
 
-					if ground.MatType == MAT_METAL then
-						if ground.HitWorld and ground.HitPos:Distance( mPointPos ) < 10
-							or mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() and ground.Entity == mPointInfo.ent then
-
-							timer.Remove( "rRefind" .. self:EntIndex() )
-							timer.Remove( "rWalking" .. self:EntIndex() )
-							timer.Remove( "rRun" .. self:EntIndex() )
-							t_StandAnimReset = true
+						timer.Remove( "rRefind" .. self:EntIndex() )
+						timer.Remove( "rWalking" .. self:EntIndex() )
+						timer.Remove( "rRun" .. self:EntIndex() )
+						t_StandAnimReset = true
+						
+						self.rMove = false
+						self.rMoveStep = 0
+						self.rModeStatus = 1
+						
+						if mPointInfo then
+						
+							if mPointInfo.ent and mPointInfo.ent:IsValid() then
 							
-							self.rMove = false
-							self.rMoveStep = 0
-							self.rModeStatus = 1
-							
-							if mPointInfo then
-							
-								if mPointInfo.ent and mPointInfo.ent:IsValid() then
-								
-									constraint.Weld( mPointInfo.ent, self, 0, 0, 0, collision == true, false )
-									self.rDisableMovining = true
-									
-								end
-								
-								//else h_phys:EnableMotion( false ) end
+								constraint.Weld( mPointInfo.ent, self, 0, 0, 0, collision == true, false )
+								self.rDisableMovining = true
 								
 							end
+							
+							//else h_phys:EnableMotion( false ) end
+							
 						end
 					end
 					

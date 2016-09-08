@@ -436,7 +436,7 @@ if SERVER then
 				end
 				
 				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) then
+						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -516,7 +516,7 @@ if SERVER then
 				end
 				
 				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) then				
+						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then				
 
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -541,7 +541,8 @@ if SERVER then
 										local v3pos = v3.ent:WorldSpaceCenter()
 												
 										if v2pos:Distance( v3pos ) < 500 
-											and not CNRTraceLine( v2pos, v3pos, replicatorNoCollideGroup_With, { v3.ent } ).Hit then
+											and not CNRTraceLine( v2pos, v3pos, replicatorNoCollideGroup_With, { v3.ent } ).Hit
+												and CNRTestForFloor( v2pos, v3pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 											
 											return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
 											
@@ -553,15 +554,14 @@ if SERVER then
 									local v3pos = v3.pos
 									
 									if not v3.used and v2pos:Distance( v3pos ) < 500
-										and not CNRTraceLine( v3pos, v2pos, replicatorNoCollideGroup_With ).Hit then
+										and not CNRTraceLine( v3pos, v2pos, replicatorNoCollideGroup_With ).Hit
+											and CNRTestForFloor( v2pos, v3pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 									
-										return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
+										return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
 										
 									end
-
 								end
 							end
-							
 						end
 					end
 				else end
@@ -772,7 +772,7 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 	net.Receive( "add_metal_points", function() m_metalPoints[ net.ReadString() ] = net.ReadTable() end )
 
 	for k, v in pairs( m_pathPoints ) do
-		local words = string.Explode( "_", k )
+		//local words = string.Explode( "_", k )
 	
 		render.SetMaterial( Material( "models/wireframe" ) )
 		
@@ -816,7 +816,7 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 
 		local t_Radius = ( 1 - math.exp( -( ( 1 - v.amount / 100 ) * 10 ) / 2 ) ) * 50
 		
-		render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), t_Radius * 100 ) 
+		render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), t_Radius * 123 ) 
 		//render.DrawBox( v.pos, v.angle, -Vector( 1, 1, 1 ), Vector( 1, 1, 1 ), Color( 0, 0, 255 ), false ) 
 		
 	end
