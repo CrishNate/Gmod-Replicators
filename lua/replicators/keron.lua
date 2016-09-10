@@ -51,9 +51,9 @@ hook.Add( "EntityTakeDamage", "ReplicatorGetDamaged", function( target, dmginfo 
 	
 		local attacker = dmginfo:GetAttacker()
 		
-		if not m_attackers[ "r"..attacker:EntIndex() ] and ( ( attacker:IsPlayer() and attacker:Alive() ) or attacker:IsNPC() ) then
+		if not g_Attackers[ "r"..attacker:EntIndex() ] and ( ( attacker:IsPlayer() and attacker:Alive() ) or attacker:IsNPC() ) then
 		
-			m_attackers[ "r"..attacker:EntIndex() ] = attacker
+			g_Attackers[ "r"..attacker:EntIndex() ] = attacker
 			target.rParentReplicator.rResearch = true
 			
 		end
@@ -69,12 +69,12 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 		if key == IN_WALK then
 		
 			net.Start( "draw_keron_network" )
-				net.WriteTable( m_pathPoints )
+				net.WriteTable( g_PathPoints )
 			net.Broadcast()
 			
 		end
 		
-		if key == IN_RUN then PrintTable( m_metalPoints ) end
+		if key == IN_RUN then PrintTable( g_MetalPoints ) end
 		
 		if key == IN_RELOAD then endPOS = ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10 print( endPOS ) end
 
@@ -101,16 +101,16 @@ end )
 
 hook.Add( "PostCleanupMap", "replicator_keron_clear", function( )
 
-	m_pathPoints = { }
-	m_metalPoints = { }
+	g_PathPoints = { }
+	g_MetalPoints = { }
 	m_DebugLink = { }
-	m_darkPoints = { }
-	m_metalPointsAsigned = { }
-	m_attackers = { }
+	g_DarkPoints = { }
+	g_MetalPointsAsigned = { }
+	g_Attackers = { }
 	
-	m_queenCount = { }
-	m_workersCount = { }
-	m_pointIsInvalid = { }
+	g_QueenCount = { }
+	g_WorkersCount = { }
+	g_pointIsInvalid = { }
 	
 	m_ID = 0
 	
@@ -162,7 +162,6 @@ if SERVER then
 		
 		return self:SequenceDuration( sequence )
 	end
-
 	
 	function CNRTestForFloor( startpos, endpos, divPerUnit, dir, hullrad )
 	
@@ -173,7 +172,7 @@ if SERVER then
 		
 		for i = 0, count do
 		
-			if not CNRTraceHullQuick( startpos + direction * divPerUnit * i, dir, hullrad, replicatorNoCollideGroup_With ).Hit then
+			if not CNRTraceHullQuick( startpos + direction * divPerUnit * i, dir, hullrad, g_ReplicatorNoCollideGroupWith ).Hit then
 			
 				return false
 				
@@ -202,7 +201,7 @@ if SERVER then
 
 			local coord, sCoord = convertToGrid( pos + Vector( x, y, z ) * 100, 100 )
 
-			if m_pathPoints[ sCoord ] then table.Add( t_pathPoints, m_pathPoints[ sCoord ] ) end
+			if g_PathPoints[ sCoord ] then table.Add( t_pathPoints, g_PathPoints[ sCoord ] ) end
 			
 		end
 		end
@@ -210,7 +209,7 @@ if SERVER then
 		
 		local t_First = true
 		for k, v in pairs( t_pathPoints ) do
-			local tracer = CNRTraceLine( v.pos, pos, replicatorNoCollideGroup_With )
+			local tracer = CNRTraceLine( v.pos, pos, g_ReplicatorNoCollideGroupWith )
 			
 			if not tracer.Hit then
 			
@@ -259,8 +258,8 @@ if SERVER then
 
 		for k, v in pairs( t_Links ) do
 			
-			if m_pathPoints[ v.case ] and m_pathPoints[ v.case ][ v.index ] and m_pathPoints[ v.case ][ v.index ].connection then
-				local pPoint = m_pathPoints[ v.case ][ v.index ]
+			if g_PathPoints[ v.case ] and g_PathPoints[ v.case ][ v.index ] and g_PathPoints[ v.case ][ v.index ].connection then
+				local pPoint = g_PathPoints[ v.case ][ v.index ]
 				
 				local t_Next = false
 				
@@ -269,12 +268,12 @@ if SERVER then
 				
 					local trace = CNRTraceHullQuick( 
 						pPoint.pos, Vector(),
-						Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
+						Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 						
 					if trace.Hit then
 						
-						if trace.Entity:IsValid() then m_pathPoints[ v.case ][ v.index ].ent = trace.Entity
-						else m_pathPoints[ v.case ][ v.index ].ent = nil end
+						if trace.Entity:IsValid() then g_PathPoints[ v.case ][ v.index ].ent = trace.Entity
+						else g_PathPoints[ v.case ][ v.index ].ent = nil end
 						
 						t_Next = true
 						
@@ -282,8 +281,8 @@ if SERVER then
 					
 				end
 				
-				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
+				if ( ( g_pointIsInvalid[ v.case ] and g_pointIsInvalid[ v.case ][ v.index ] and g_pointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not g_pointIsInvalid[ v.case ] or ( g_pointIsInvalid[ v.case ] and not g_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -329,8 +328,8 @@ if SERVER then
 
 		for k, v in pairs( t_Links ) do
 			
-			if m_pathPoints[ v.case ] and m_pathPoints[ v.case ][ v.index ] and m_pathPoints[ v.case ][ v.index ].connection then
-				local pPoint = m_pathPoints[ v.case ][ v.index ]
+			if g_PathPoints[ v.case ] and g_PathPoints[ v.case ][ v.index ] and g_PathPoints[ v.case ][ v.index ].connection then
+				local pPoint = g_PathPoints[ v.case ][ v.index ]
 				
 				local t_Next = false
 				
@@ -339,12 +338,12 @@ if SERVER then
 				
 					local trace = CNRTraceHullQuick( 
 						pPoint.pos, Vector(),
-						Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
+						Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 						
 					if trace.Hit then
 						
-						if trace.Entity:IsValid() then m_pathPoints[ v.case ][ v.index ].ent = trace.Entity
-						else m_pathPoints[ v.case ][ v.index ].ent = nil end
+						if trace.Entity:IsValid() then g_PathPoints[ v.case ][ v.index ].ent = trace.Entity
+						else g_PathPoints[ v.case ][ v.index ].ent = nil end
 						
 						t_Next = true
 						
@@ -352,8 +351,8 @@ if SERVER then
 					
 				end
 				
-				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
+				if ( ( g_pointIsInvalid[ v.case ] and g_pointIsInvalid[ v.case ][ v.index ] and g_pointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not g_pointIsInvalid[ v.case ] or ( g_pointIsInvalid[ v.case ] and not g_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -372,7 +371,7 @@ if SERVER then
 							for k3, v3 in pairs( entTable ) do
 							
 								if v3:IsValid() and t_v2pos:Distance( v3:GetPos() ) < 500
-									and not CNRTraceLine( t_v2pos, v3:GetPos(), replicatorNoCollideGroup_With ).Hit 
+									and not CNRTraceLine( t_v2pos, v3:GetPos(), g_ReplicatorNoCollideGroupWith ).Hit 
 										and CNRTestForFloor( t_v2pos, v3:GetPos(), 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 									
 									return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3:GetPos() } ), v3, k3
@@ -412,8 +411,8 @@ if SERVER then
 
 		for k, v in pairs( t_Links ) do
 			
-			if m_pathPoints[ v.case ] and m_pathPoints[ v.case ][ v.index ] and m_pathPoints[ v.case ][ v.index ].connection then
-				local pPoint = m_pathPoints[ v.case ][ v.index ]
+			if g_PathPoints[ v.case ] and g_PathPoints[ v.case ][ v.index ] and g_PathPoints[ v.case ][ v.index ].connection then
+				local pPoint = g_PathPoints[ v.case ][ v.index ]
 				
 				local t_Next = false
 				
@@ -422,12 +421,12 @@ if SERVER then
 				
 					local trace = CNRTraceHullQuick( 
 						pPoint.pos, Vector(),
-						Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
+						Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 						
 					if trace.Hit then
 						
-						if trace.Entity:IsValid() then m_pathPoints[ v.case ][ v.index ].ent = trace.Entity
-						else m_pathPoints[ v.case ][ v.index ].ent = nil end
+						if trace.Entity:IsValid() then g_PathPoints[ v.case ][ v.index ].ent = trace.Entity
+						else g_PathPoints[ v.case ][ v.index ].ent = nil end
 						
 						t_Next = true
 						
@@ -435,8 +434,8 @@ if SERVER then
 					
 				end
 				
-				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
+				if ( ( g_pointIsInvalid[ v.case ] and g_pointIsInvalid[ v.case ][ v.index ] and g_pointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not g_pointIsInvalid[ v.case ] or ( g_pointIsInvalid[ v.case ] and not g_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -452,10 +451,10 @@ if SERVER then
 							
 							local v2pos = pPoint.pos
 							
-							for k3, v3 in pairs( m_darkPoints ) do
+							for k3, v3 in pairs( g_DarkPoints ) do
 								
 								if not v3.used and v2pos:Distance( v3.pos ) < 500
-									and not CNRTraceLine( v2pos, v3.pos, replicatorNoCollideGroup_With ).Hit 
+									and not CNRTraceLine( v2pos, v3.pos, g_ReplicatorNoCollideGroupWith ).Hit 
 										and CNRTestForFloor( v2pos, v3.pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 									
 									return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
@@ -492,8 +491,8 @@ if SERVER then
 
 		for k, v in pairs( t_Links ) do
 			
-			if m_pathPoints[ v.case ] and m_pathPoints[ v.case ][ v.index ] and m_pathPoints[ v.case ][ v.index ].connection then
-				local pPoint = m_pathPoints[ v.case ][ v.index ]
+			if g_PathPoints[ v.case ] and g_PathPoints[ v.case ][ v.index ] and g_PathPoints[ v.case ][ v.index ].connection then
+				local pPoint = g_PathPoints[ v.case ][ v.index ]
 				
 				local t_Next = false
 				
@@ -502,12 +501,12 @@ if SERVER then
 				
 					local trace = CNRTraceHullQuick( 
 						pPoint.pos, Vector(),
-						Vector( 10, 10, 10 ), replicatorNoCollideGroup_With )
+						Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 						
 					if trace.Hit then
 						
-						if trace.Entity:IsValid() then m_pathPoints[ v.case ][ v.index ].ent = trace.Entity
-						else m_pathPoints[ v.case ][ v.index ].ent = nil end
+						if trace.Entity:IsValid() then g_PathPoints[ v.case ][ v.index ].ent = trace.Entity
+						else g_PathPoints[ v.case ][ v.index ].ent = nil end
 						
 						t_Next = true
 						
@@ -515,8 +514,8 @@ if SERVER then
 					
 				end
 				
-				if ( ( m_pointIsInvalid[ v.case ] and m_pointIsInvalid[ v.case ][ v.index ] and m_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not m_pointIsInvalid[ v.case ] or ( m_pointIsInvalid[ v.case ] and not m_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then				
+				if ( ( g_pointIsInvalid[ v.case ] and g_pointIsInvalid[ v.case ][ v.index ] and g_pointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not g_pointIsInvalid[ v.case ] or ( g_pointIsInvalid[ v.case ] and not g_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then				
 
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -532,7 +531,7 @@ if SERVER then
 							
 							local v2pos = pPoint.pos
 							
-							for k3, v3 in pairs( m_metalPoints ) do
+							for k3, v3 in pairs( g_MetalPoints ) do
 							
 								if v3.ent then
 								
@@ -541,20 +540,20 @@ if SERVER then
 										local v3pos = v3.ent:WorldSpaceCenter()
 												
 										if v2pos:Distance( v3pos ) < 500 
-											and not CNRTraceLine( v2pos, v3pos, replicatorNoCollideGroup_With, { v3.ent } ).Hit
+											and not CNRTraceLine( v2pos, v3pos, g_ReplicatorNoCollideGroupWith, { v3.ent } ).Hit
 												and CNRTestForFloor( v2pos, v3pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 											
 											return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
 											
 										end
-									else table.remove( m_metalPoints, ""..v3.ent:EntIndex() ) end
+									else table.remove( g_MetalPoints, ""..v3.ent:EntIndex() ) end
 									
 								else
 
 									local v3pos = v3.pos
 									
 									if not v3.used and v2pos:Distance( v3pos ) < 500
-										and not CNRTraceLine( v3pos, v2pos, replicatorNoCollideGroup_With ).Hit
+										and not CNRTraceLine( v3pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit
 											and CNRTestForFloor( v2pos, v3pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 									
 										return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
@@ -580,10 +579,9 @@ if SERVER then
 	//
 	// Adding metal spot
 	//
-	
 	function UpdateMetalPoint( _stringp, _amount )
 	
-		m_metalPoints[ _stringp ].amount = _amount
+		g_MetalPoints[ _stringp ].amount = _amount
 
 		net.Start( "update_metal_points" ) net.WriteString( _stringp ) net.WriteFloat( _amount ) net.Broadcast()
 		
@@ -596,18 +594,18 @@ if SERVER then
 
 		local _stringp = "_".._ent:EntIndex()
 		
-		m_metalPoints[ _stringp ] = { ent = _ent, amount = _ent:GetModelRadius() * 4 }
-		m_metalPointsAsigned[ _stringp ] = true
+		g_MetalPoints[ _stringp ] = { ent = _ent, amount = _ent:GetModelRadius() * 4 }
+		g_MetalPointsAsigned[ _stringp ] = true
 		
 	end
 	
 	
 	function AddMetalPoint( _stringp, _pos, _normal, _amount )
 		
-		m_metalPoints[ _stringp ] = { pos = _pos, normal = _normal, amount = _amount, used = false }
-		m_metalPointsAsigned[ _stringp ] = true
+		g_MetalPoints[ _stringp ] = { pos = _pos, normal = _normal, amount = _amount, used = false }
+		g_MetalPointsAsigned[ _stringp ] = true
 		
-		local t_tracer = CNRTraceQuick( _pos, -_normal * 20, replicatorNoCollideGroup_With )
+		local t_tracer = CNRTraceQuick( _pos, -_normal * 20, g_ReplicatorNoCollideGroupWith )
 				
 		net.Start( "add_metal_points" )
 		
@@ -635,7 +633,7 @@ if SERVER then
 
 			local coord, sCoord = convertToGrid( _pos + Vector( x, y, z ) * 80, 100 )
 			
-			if m_pathPoints[ sCoord ] then table.Add( t_pathPoints, m_pathPoints[ sCoord ] ) end
+			if g_PathPoints[ sCoord ] then table.Add( t_pathPoints, g_PathPoints[ sCoord ] ) end
 			
 		end
 		end
@@ -647,21 +645,21 @@ if SERVER then
 			
 				for k, v in pairs( t_pathPoints ) do
 				
-					local v2pos = m_pathPoints[ v2.case ][ v2.index ].pos
+					local v2pos = g_PathPoints[ v2.case ][ v2.index ].pos
 					
-					//print( v.case, v.index, v2.case, v2.index, v.pos:Distance( _pos ), not ( v.case == v2.case and v.index == v2.index ), ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, replicatorNoCollideGroup_With ).Hit ) )
+					//print( v.case, v.index, v2.case, v2.index, v.pos:Distance( _pos ), not ( v.case == v2.case and v.index == v2.index ), ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, g_ReplicatorNoCollideGroupWith ).Hit ) )
 					
 					if not ( v.case == v2.case and v.index == v2.index ) 
-						and ( ( v.pos:Distance( _pos ) < 50 and not CNRTraceLine( v.pos, v2pos, replicatorNoCollideGroup_With ).Hit ) 
-							or ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, replicatorNoCollideGroup_With ).Hit ) ) then
+						and ( ( v.pos:Distance( _pos ) < 50 and not CNRTraceLine( v.pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit ) 
+							or ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, g_ReplicatorNoCollideGroupWith ).Hit ) ) then
 					
-						if not m_pathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] then
+						if not g_PathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] then
 						
-							m_pathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] = { case = v2.case, index = v2.index }
-							m_pathPoints[ v2.case ][ v2.index ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
+							g_PathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] = { case = v2.case, index = v2.index }
+							g_PathPoints[ v2.case ][ v2.index ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
 
-							//table.Add( m_pathPoints[ v.case ][ v.index ].connection, {{ case = v2.case, index = v2.index }} )
-							//table.Add( m_pathPoints[ v2.case ][ v2.index ].connection, {{ case = v.case, index = v.index }} )
+							//table.Add( g_PathPoints[ v.case ][ v.index ].connection, {{ case = v2.case, index = v2.index }} )
+							//table.Add( g_PathPoints[ v2.case ][ v2.index ].connection, {{ case = v.case, index = v.index }} )
 							
 							t_Mergered = true
 						end
@@ -681,7 +679,7 @@ if SERVER then
 			
 			if r_Case != "" and r_Index > 0 then
 				
-				if m_pathPoints[ r_Case ][ r_Index ].pos:Distance( _pos ) < 50 and not CNRTraceLine( _pos, m_pathPoints[ r_Case ][ r_Index ].pos, replicatorNoCollideGroup_With ).Hit then
+				if g_PathPoints[ r_Case ][ r_Index ].pos:Distance( _pos ) < 50 and not CNRTraceLine( _pos, g_PathPoints[ r_Case ][ r_Index ].pos, g_ReplicatorNoCollideGroupWith ).Hit then
 					
 					merge = true
 					returnID = { case = r_Case, index = r_Index }
@@ -694,33 +692,33 @@ if SERVER then
 			
 			local coord, sCoord = convertToGrid( _pos, 100 )
 
-			if m_pathPoints[ sCoord ] then
+			if g_PathPoints[ sCoord ] then
 			
-				m_ID = table.Count( m_pathPoints[ sCoord ] ) + 1
+				m_ID = table.Count( g_PathPoints[ sCoord ] ) + 1
 				
 			else
 			
 				m_ID = 1
-				m_pathPoints[ sCoord ] = {}
+				g_PathPoints[ sCoord ] = {}
 				
 			end
 			
 			returnID = { case = sCoord, index = m_ID }
 			
-			if _ent and _ent:IsValid() then table.Add( m_pathPoints[ sCoord ], {{ pos = _pos, connection = {}, case = sCoord, index = m_ID, ent = _ent }} )
-			else table.Add( m_pathPoints[ sCoord ], {{ pos = _pos, connection = {}, case = sCoord, index = m_ID }} ) end
+			if _ent and _ent:IsValid() then table.Add( g_PathPoints[ sCoord ], {{ pos = _pos, connection = {}, case = sCoord, index = m_ID, ent = _ent }} )
+			else table.Add( g_PathPoints[ sCoord ], {{ pos = _pos, connection = {}, case = sCoord, index = m_ID }} ) end
 			
 			for k, v in pairs( _connection ) do
 			
-				//local result = CNRTraceLine( _pos, m_pathPoints[ v.case ][ v.index ].pos, replicatorNoCollideGroup_With )
+				//local result = CNRTraceLine( _pos, g_PathPoints[ v.case ][ v.index ].pos, g_ReplicatorNoCollideGroupWith )
 
 				//if not result.Hit then
 
-					m_pathPoints[ v.case ][ v.index ].connection[ sCoord.."|"..m_ID ] = { case = sCoord, index = m_ID }
-					m_pathPoints[ sCoord ][ m_ID ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
+					g_PathPoints[ v.case ][ v.index ].connection[ sCoord.."|"..m_ID ] = { case = sCoord, index = m_ID }
+					g_PathPoints[ sCoord ][ m_ID ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
 					
-					//table.Add( m_pathPoints[ v.case ][ v.index ].connection, {{ case = sCoord, index = m_ID }} )
-					//table.Add( m_pathPoints[ sCoord ][ m_ID ].connection, {{ case = v.case, index = v.index }} )
+					//table.Add( g_PathPoints[ v.case ][ v.index ].connection, {{ case = sCoord, index = m_ID }} )
+					//table.Add( g_PathPoints[ sCoord ][ m_ID ].connection, {{ case = v.case, index = v.index }} )
 
 					//PrintMessage( HUD_PRINTTALK, m_ID )
 					
@@ -734,7 +732,7 @@ if SERVER then
 		return returnID, t_Mergered
 	end
 
-	net.Receive( "rDark_points", function() m_darkPoints[ net.ReadString() ] = { pos = net.ReadVector(), used = false } end )		
+	net.Receive( "rDark_points", function() g_DarkPoints[ net.ReadString() ] = { pos = net.ReadVector(), used = false } end )		
 	
 end // SERVER
 
@@ -753,7 +751,7 @@ if CLIENT then
 
 	function AddDarkPoint( _stringp, _pos )
 	
-		m_darkPoints[ _stringp ] = { pos = _pos, used = false }
+		g_DarkPoints[ _stringp ] = { pos = _pos, used = false }
 		
 		net.Start( "rDark_points" )
 			net.WriteString( _stringp )
@@ -765,13 +763,14 @@ if CLIENT then
 end // CLIENT
 
 hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
+	//print( "Tick: "..( 1/FrameTime() ) )
 
-	net.Receive( "draw_keron_network", function() m_pathPoints = net.ReadTable() end )
+	net.Receive( "draw_keron_network", function() g_PathPoints = net.ReadTable() end )
 	
-	net.Receive( "update_metal_points", function() m_metalPoints[ net.ReadString() ].amount = net.ReadFloat() end )
-	net.Receive( "add_metal_points", function() m_metalPoints[ net.ReadString() ] = net.ReadTable() end )
+	net.Receive( "update_metal_points", function() g_MetalPoints[ net.ReadString() ].amount = net.ReadFloat() end )
+	net.Receive( "add_metal_points", function() g_MetalPoints[ net.ReadString() ] = net.ReadTable() end )
 
-	for k, v in pairs( m_pathPoints ) do
+	for k, v in pairs( g_PathPoints ) do
 		//local words = string.Explode( "_", k )
 	
 		render.SetMaterial( Material( "models/wireframe" ) )
@@ -786,21 +785,21 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 			
 			for k3, v3 in pairs( v2.connection ) do
 			
-				if m_pathPoints[ v3.case ] then
+				if g_PathPoints[ v3.case ] then
 
-					local p = m_pathPoints[ v3.case ][ v3.index ]
+					local p = g_PathPoints[ v3.case ][ v3.index ]
 					local vec = ( v2.pos - p.pos ):Angle()
 					
 					render.DrawLine( v2.pos + vec:Right() / 2, p.pos + vec:Right() / 2, Color( 255, 255, 255, 50 ), false )
 					
 				end
-				//else table.remove( m_pathPoints[ v2.case ].connection, k2 ) end
+				//else table.remove( g_PathPoints[ v2.case ].connection, k2 ) end
 				
 			end
 		end
 	end
 	
-	for k, v in pairs( m_darkPoints ) do
+	for k, v in pairs( g_DarkPoints ) do
 	
 		render.SetColorMaterial()
 		render.SetBlend( 1 )
@@ -810,7 +809,7 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 	end
 
 
-	for k, v in pairs( m_metalPoints ) do
+	for k, v in pairs( g_MetalPoints ) do
 	
 		render.SetMaterial( Material( "decals/antlion/shot5" ) )
 
@@ -826,7 +825,7 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 	for k, v in pairs( m_DebugLink ) do
 	
 		render.SetColorMaterial()
-		render.DrawBox( m_pathPoints[ v.case ][ v.index ].pos, Angle( 45, 45 ,45 ), -Vector( 1, 1, 1 ) * ( 1 + k / 100 ), Vector( 1, 1, 1 ) * ( 1 + k / 100 ), Color( 0, 0, 255 ), false ) 
+		render.DrawBox( g_PathPoints[ v.case ][ v.index ].pos, Angle( 45, 45 ,45 ), -Vector( 1, 1, 1 ) * ( 1 + k / 100 ), Vector( 1, 1, 1 ) * ( 1 + k / 100 ), Color( 0, 0, 255 ), false ) 
 		
 	end
 	

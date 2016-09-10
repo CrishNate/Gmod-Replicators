@@ -1,10 +1,10 @@
-local replicatorNoCollideGroup = {
+local g_ReplicatorNoCollideGroup = {
 	"replicator_segment",
 	"replicator_queen",
 	"replicator_worker"
 }
 
-replicatorNoCollideGroup_With = {
+g_ReplicatorNoCollideGroupWith = {
 	"replicator_segment",
 	"replicator_queen",
 	"replicator_worker",
@@ -169,8 +169,8 @@ end
 hook.Add("ShouldCollide", "replicator_nocolide", function( ent1, ent2 )
 	//print( ent1, ent2 )
 	
-	for k, v in pairs( replicatorNoCollideGroup ) do
-		for k2, v2 in pairs( replicatorNoCollideGroup_With ) do
+	for k, v in pairs( g_ReplicatorNoCollideGroup ) do
+		for k2, v2 in pairs( g_ReplicatorNoCollideGroupWith ) do
 			if ent1:GetClass() == v and ent2:GetClass() == v2 then
 				return false
 			end

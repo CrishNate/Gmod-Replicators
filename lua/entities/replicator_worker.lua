@@ -1,5 +1,4 @@
 AddCSLuaFile( )
-include( "replicator_class/replicator_class.lua" )
 
 ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
@@ -32,7 +31,7 @@ function ENT:Initialize()
 	end // CLIENT
 
 	
-	ReplicatorInitialize( self )
+	REPLICATOR.ReplicatorInitialize( self )
 	
 end
 
@@ -65,7 +64,7 @@ function ENT:Draw()
 
 	local tr, trD = cnr_traceHullQuick( 
 				self:GetPos(), -self:GetUp() * 20,
-				Vector( 6, 6, 6 ), replicatorNoCollideGroup_With )
+				Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
 		
 	if tr.Hit then print( trD ) end
 	render.DrawLine( tr.HitPos, startpos + dir * len, color_white, true )
@@ -88,7 +87,7 @@ if SERVER then
 
 	function ENT:OnTakeDamage( dmginfo )
 	
-		ReplicatorGetDamaged( 1, self, dmginfo )
+		REPLICATOR.ReplicatorOnTakeDamage( 1, self, dmginfo )
 		
 	end
 end
@@ -104,15 +103,14 @@ function ENT:Think()
 		// ---------- Replicator Class
 		//
 		
-		ReplicatorThink( 1, self )
+		REPLICATOR.ReplicatorThink( 1, self )
 		
-
 	end // SERVER
 
 	// ------------------------- Initialize dark spots
 	if CLIENT then
 
-		ReplicatorDarkPointAssig( self )
+		REPLICATOR.ReplicatorDarkPointAssig( self )
 
 	end // CLIENT
 	
@@ -123,9 +121,8 @@ if SERVER then
 
 	function ENT:OnRemove()
 	
-		ReplicatorOnRemove( self )
+		REPLICATOR.ReplicatorOnRemove( self )
 
 	end
-	
 end
 	

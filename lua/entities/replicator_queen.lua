@@ -1,5 +1,4 @@
 AddCSLuaFile( )
-include( "replicator_class/replicator_class.lua" )
 
 ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
@@ -25,8 +24,6 @@ function ENT:Initialize()
 		self:SetSolid( SOLID_VPHYSICS )
 
 		self:SetHealth( 100 )
-
-		ReplicatorInitialize( self )
 		
 	end // SERVER
 
@@ -35,6 +32,9 @@ function ENT:Initialize()
 		self:SetVar( "rEffectFrame", 0 )
 		
 	end // CLIENT
+
+	REPLICATOR.ReplicatorInitialize( self )
+	
 end
 
 function ENT:SpawnFunction( ply, tr, ClassName )
@@ -118,7 +118,7 @@ function ENT:Draw()
 	local tr = traceHullQuick( 
 		self:GetPos() + self:GetUp() * 4, 
 		self:GetForward() * 20, 
-		Vector( 8, 8, 8 ), replicatorNoCollideGroup_With )
+		Vector( 8, 8, 8 ), g_ReplicatorNoCollideGroupWith )
 
 	render.DrawLine( tr.HitPos, startpos + dir * len, color_white, true )
 	render.DrawLine( startpos, tr.HitPos, Color( 0, 0, 255 ), true )
