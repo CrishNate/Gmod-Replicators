@@ -137,7 +137,7 @@ if SERVER then
 
 	function ENT:OnTakeDamage( dmginfo )
 
-		ReplicatorGetDamaged( 2, self, dmginfo )
+		REPLICATOR.ReplicatorOnTakeDamage( 2, self, dmginfo )
 		
 	end
 end
@@ -146,22 +146,15 @@ function ENT:Think()
 
 	self:NextThink( CurTime() + 0.1 )
 
-	//------------ Moving of replicator
 	if SERVER then
 		
-		//
-		// ---------- Replicator Class
-		//
-		
-		ReplicatorThink( 2, self )
-		
+		REPLICATOR.ReplicatorThink( 2, self )
 		
 	end // SERVER
 
-	// ------------------------- Initialize dark spots
 	if CLIENT then
 		
-		ReplicatorDarkPointAssig( self )
+		REPLICATOR.ReplicatorDarkPointAssig( self )
 
 	end // CLIENT
 
@@ -172,7 +165,7 @@ if SERVER then
 
 	function ENT:OnRemove()
 	
-		ReplicatorOnRemove( self )
+		REPLICATOR.ReplicatorOnRemove( self )
 
 	end
 	

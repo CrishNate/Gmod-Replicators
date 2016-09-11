@@ -62,7 +62,7 @@ REPLICATOR.ReplicatorOnRemove = function( self )
 	timer.Remove( "rDamagining"..self:EntIndex() )
 	
 end
-	
+
 REPLICATOR.ReplicatorDarkPointAssig = function( self )
 
 	local h_Radius = Vector( 4, 4, 4 )
@@ -90,6 +90,66 @@ REPLICATOR.ReplicatorDarkPointAssig = function( self )
 
 end
 
+REPLICATOR.ReplicatorScanningResources = function( self )
+	
+	local h_Result = ents.FindInSphere( self:GetPos(), 500 )
+	
+	for k, v in pairs( h_Result ) do
+		
+		if v:GetClass() == "prop_physics" then
+		
+			local m_Dir = VectorRand()
+			m_Dir:Normalize()
+			
+			m_Trace = CNRTraceQuick( 
+			v:WorldSpaceCenter(), m_Dir * v:GetModelRadius(),
+			g_ReplicatorNoCollideGroupWith )
+			
+			if m_Trace.MatType == MAT_METAL and v:IsValid() and not g_MetalPointsAsigned[ "_"..v:EntIndex() ] then AddMetalEntity( v ) end
+			
+		elseif v:IsNPC() then
+			
+			v:AddEntityRelationship( self.rReplicatorNPCTarget, D_HT , 99 ) 
+			
+		end
+	end
+end
+
+REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos )
+
+	local t_Count = 0
+	
+	if replicatorType == 1 then t_Count = g_segments_to_assemble_replicator
+	elseif replicatorType == 2 then t_Count = g_segments_to_assemble_queen
+	end
+	
+	local h_Ent
+	
+	for i = 1, t_Count do
+	
+		h_Ent = ents.Create( "replicator_segment" )
+		
+		if not IsValid( h_Ent ) then return end
+		h_Ent:SetPos( self:GetPos() + VectorRand() * 3 )
+		h_Ent:SetAngles( AngleRand() )
+		h_Ent:SetOwner( self:GetOwner() )
+		h_Ent:Spawn()
+		
+		local phys = h_Ent:GetPhysicsObject()
+		phys:Wake()
+		
+		local vec = ( self:GetPos() - dmgpos )
+		vec:Normalize()
+		
+		phys:SetVelocity( ( VectorRand() + vec / 2 ) * ( damage / 2 + 100 ) )
+		
+	end
+	
+	h_Ent:EmitSound( "npc/manhack/gib.wav", 75, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
+	
+	self:Remove()
+end
+
 REPLICATOR.ReplicatorDrawDebug = function( self )
 	
 	net.Receive( "rDrawPoint", function() net.ReadEntity().cPoint = net.ReadVector() end )
@@ -97,4 +157,5 @@ REPLICATOR.ReplicatorDrawDebug = function( self )
 	
 	net.Receive( "rDrawpPoint", function() net.ReadEntity().pPoint = net.ReadVector() end )
 	render.DrawLine( self:GetPos(), self.pPoint, Color( 255, 255, 255 ), true )
+	
 end

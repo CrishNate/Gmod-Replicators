@@ -1,3 +1,9 @@
+--[[
+
+	REPLICATORS AI segment
+	
+]]
+
 local m_ID = 0
 local m_DebugLink = { }
 
@@ -553,8 +559,7 @@ if SERVER then
 									local v3pos = v3.pos
 									
 									if not v3.used and v2pos:Distance( v3pos ) < 500
-										and not CNRTraceLine( v3pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit
-											and CNRTestForFloor( v2pos, v3pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
+										and not CNRTraceLine( v3pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit then
 									
 										return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
 										

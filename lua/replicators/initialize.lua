@@ -1,5 +1,11 @@
 AddCSLuaFile( )
 
+--[[
+
+	REPLICATORS Initialization
+	
+]]
+
 REPLICATOR.ReplicatorInitialize = function( self )
 		
 	if SERVER then
@@ -98,6 +104,13 @@ REPLICATOR.ReplicatorInitialize = function( self )
 			target.rParentReplicator = self
 		end
 		
+		
+		local ef = EffectData()
+
+		ef:SetOrigin( self:GetPos() )
+		ef:SetNormal( -self:GetUp() )
+		util.Effect( "acid_spit", ef )
+
 	end // SERVER
 
 	if CLIENT then

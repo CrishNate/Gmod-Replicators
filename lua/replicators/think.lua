@@ -1,170 +1,100 @@
 AddCSLuaFile( )
 
-REPLICATOR.ReplicatorScanningResources = function( self )
-	
-	local result = ents.FindInSphere( self:GetPos(), 500 )
-	
-	for k, v in pairs( result ) do
-		
-		if v:GetClass() == "prop_physics" then
-		
-			local dir = VectorRand()
-			dir:Normalize()
-			
-			trace = CNRTraceQuick( 
-			v:WorldSpaceCenter(), dir * v:GetModelRadius(),
-			g_ReplicatorNoCollideGroupWith )
-			
-			if trace.MatType == MAT_METAL and v:IsValid() and not g_MetalPointsAsigned[ "_"..v:EntIndex() ] then AddMetalEntity( v ) end
-			
-		elseif v:IsNPC() then
-			
-			v:AddEntityRelationship( self.rReplicatorNPCTarget, D_HT , 99 ) 
-			
-		end
-	end
-end
+--[[
 
-REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos )
-
-	local phys = self:GetPhysicsObject()
-	//phys:EnableCollisions( false )
-
-	local t_Count = 0
+	REPLICATORS Artificial Intelligence ( AI )
 	
-	if replicatorType == 1 then t_Count = g_segments_to_assemble_replicator
-	elseif replicatorType == 2 then t_Count = g_segments_to_assemble_queen
-	end
-	
-	local ent
-	
-	for i = 1, t_Count do
-	
-		ent = ents.Create( "replicator_segment" )
-		
-		if not IsValid( ent ) then return end
-		ent:SetPos( self:GetPos() + VectorRand() * 3 )
-		ent:SetAngles( AngleRand() )
-		ent:SetOwner( self:GetOwner() )
-		ent:Spawn()
-		
-		local phys = ent:GetPhysicsObject()
-		phys:Wake()
-		
-		local vec = ( self:GetPos() - dmgpos )
-		vec:Normalize()
-		
-		phys:SetVelocity( ( VectorRand() + vec / 2 ) * ( damage / 2 + 100 ) )
-		
-	end
-	
-	ent:EmitSound( "npc/manhack/gib.wav", 75, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
-	
-	self:Remove()
-end
+]]
 
 REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 	
-	// ======================= Varibles
+	// ======================= Varibles =================
 	
-	local ground = {}
-	local groundDist = 0
+	local h_Ground 			= {}
+	local h_GroundDist 		= 0
+	
+	local h_Phys 			= self:GetPhysicsObject()
+	local h_YawRot 			= self.rYawRot
+	local h_Move 			= self.rMove
+	local h_MoveMode 		= self.rMoveMode
+	local h_Research 		= self.rResearch
+	local h_Mode 			= self.rMode
+	local h_ModeStatus 		= self.rModeStatus
+	local h_PrevInfo 		= self.rPrevPointId
+
+	local h_StandAnimReset 	= false
 	
 	if replicatorType == 1 then
 	
-		ground, groundDist = CNRTraceHullQuick( 
-			self:GetPos() + self:GetUp() * 15, -self:GetUp() * 30,
-			Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
+		h_Ground, h_GroundDist = CNRTraceHullQuick( self:GetPos() + self:GetUp() * 15, -self:GetUp() * 30, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
 			
 	elseif replicatorType == 2 then
 	
-		ground, groundDist = CNRTraceHullQuick( 
-			self:GetPos() + self:GetUp() * 10, -self:GetUp() * 40,
-			Vector( 8, 8, 8 ), g_ReplicatorNoCollideGroupWith )		
-	
+		h_Ground, h_GroundDist = CNRTraceHullQuick( self:GetPos() + self:GetUp() * 10, -self:GetUp() * 40, Vector( 8, 8, 8 ), g_ReplicatorNoCollideGroupWith )
+			
 	end
 
-	local h_phys = self:GetPhysicsObject()
-
-	local h_YawRot = self.rYawRot
-	local h_Move = self.rMove
-	local h_MoveMode = self.rMoveMode
-
-	local h_Research = self.rResearch
-	local h_Mode = self.rMode
-	local h_ModeStatus = self.rModeStatus
-	local h_PrevInfo = self.rPrevPointId
-
-	local t_StandAnimReset = false
-	local t_Offset = Vector()
-	local t_AngleOffset = Angle()
+	// =================================================== Modes ===================================================
 	
-	//
-	// =========================================== Modes
-	//
-	
-	// ================================================== Research mode
 	if h_Research then
 	
 		//print( h_Mode, h_ModeStatus )
-		// ==================== Redirecting when stuck
+		// ==================== Redirecting when stuck ======================
 		
-		local t_Name = "rRotateBack" .. self:EntIndex()
+		self.rMove 			= true
+		self.rMoveMode 		= 1
+		self.rMoveReverse 	= false
 		
-		if not timer.Exists( t_Name ) then
+		timer.Remove( "rRefind"..self:EntIndex() )
+
+		local m_Name = "rRotateBack" .. self:EntIndex()
+		
+		if not timer.Exists( m_Name ) then
 			
-			timer.Create( t_Name, 4, 0, function()
+			timer.Create( m_Name, 4, 0, function()
 			
 				if self:IsValid() then self:SetAngles( self:LocalToWorldAngles( Angle( 0, 90, 0 ) ) ) end
 				
 			end )
-		end
+		end		
+			
+		local m_Name = "rChangingDirection"..self:EntIndex()
 		
-		//print( h_Mode, h_ModeStatus )
+		if not timer.Exists( m_Name ) then
 		
-		self.rMove = true
-		self.rMoveMode = 1
-		self.rMoveReverse = false
-		
-		timer.Remove( "rRefind"..self:EntIndex() )
-	
-		local t_Name = "rChangingDirection"..self:EntIndex()
-		
-		if not timer.Exists( t_Name ) then
-		
-			timer.Create( t_Name, math.Rand( 2, 8 ), 0, function()
+			timer.Create( m_Name, math.Rand( 2, 8 ), 0, function()
 			
 				if self:IsValid() then self.rYawRot = math.Rand( 3, -3 ) end
 				
 			end )
 		end
 					
-		// ===================== Setting path to metal
+		// ===================== Searching path to a metal ======================
 		
-		local t_rMetalAmount = self.rMetalAmount
+		local m_MetalAmount = self.rMetalAmount
 
-		local t_Name = "rScanner"..self:EntIndex()
-		local targetEnt = self.rTargetEnt
+		local m_Name = "rScanner"..self:EntIndex()
+		local m_TargetEnt = self.rTargetEnt
 
 		if table.Count( g_MetalPoints ) > 0 and table.Count( h_PrevInfo ) > 0 
 			and ( h_Mode == 0 or ( h_Mode == 1 and ( h_ModeStatus == 0 or h_ModeStatus == 1 ) ) )
-				and not timer.Exists( t_Name ) then
-			
-			timer.Create( t_Name, math.Rand( 5, 5 ), 1, function() end )
+				and not timer.Exists( m_Name ) then
 
-			local t_PathResult, t_MetalId
-			
-			if targetEnt:IsValid() then
+			timer.Create( m_Name, math.Rand( 5, 5 ), 1, function() end )
 
-				t_PathResult = self.rMovePath
-				t_MetalId = self.rTargetMetalId
+			local m_PathResult 	= { }
+			local m_MetalId		= 0
+			
+			if m_TargetEnt:IsValid() then
+
+				m_PathResult = self.rMovePath
+				m_MetalId = self.rTargetMetalId
 				
-			else t_PathResult, t_MetalId = GetPatchWayToClosestMetal( h_PrevInfo ) end
+			else m_PathResult, m_MetalId = GetPatchWayToClosestMetal( h_PrevInfo ) end
 
-			if table.Count( t_PathResult ) > 0 then
+			if table.Count( m_PathResult ) > 0 then
 			
-				if not g_MetalPoints[ t_MetalId ].ent then g_MetalPoints[ t_MetalId ].used = true end
-				//print( "Scanned" )
+				if not g_MetalPoints[ m_MetalId ].m_Ent then g_MetalPoints[ m_MetalId ].used = true end
 				
 				timer.Remove( "rRotateBack"..self:EntIndex() )
 				timer.Remove( "rScannerDark"..self:EntIndex() )
@@ -175,19 +105,19 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 				
 				self.rMode = 1
 				self.rModeStatus = 0
-				self.rTargetMetalId = t_MetalId
-				self.rMovePath = t_PathResult
+				self.rTargetMetalId = m_MetalId
+				self.rMovePath = m_PathResult
 				
 			end
-			
-			
 		end
+
+		// ===================== Searching path to a dark point ======================
 		
-		local t_Name = "rScannerDark"..self:EntIndex()
+		local m_Name = "rScannerDark"..self:EntIndex()
 		
-		if ( h_Mode == 1 and h_ModeStatus == 2 or h_Mode == 4 ) and table.Count( g_DarkPoints ) > 0 and not timer.Exists( t_Name ) then
+		if ( h_Mode == 1 and h_ModeStatus == 2 or h_Mode == 4 ) and table.Count( g_DarkPoints ) > 0 and not timer.Exists( m_Name ) then
 			
-			timer.Create( t_Name, math.Rand( 5, 5 ), 1, function()
+			timer.Create( m_Name, math.Rand( 5, 5 ), 1, function()
 
 				if self:IsValid() then
 
@@ -203,164 +133,147 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 			end )				
 		end
 		
-		// =================== Attack enemies
+		// ===================== Searching path to an enemy ======================
 		
-		if table.Count( g_Attackers ) > 0 and not timer.Exists( t_Name ) then
+		if table.Count( g_Attackers ) > 0 and not timer.Exists( m_Name ) then
 			
-			local t_PathResult, t_TargetEnt, t_TargetId
+			local m_PathResult, t_TargetEnt, t_TargetId
 			
-			local targetEnt = self.rTargetEnt
-			if targetEnt:IsValid() then
+			local m_TargetEnt = self.rTargetEnt
+			if m_TargetEnt:IsValid() then
 
-				t_PathResult = self.rMovePath
+				m_PathResult = self.rMovePath
 				t_TargetId = self.rTargetId
 				
-				
 			else
-				local r_Case, r_Index = FindClosestPoint( self:GetPos(), 1 )
-				t_PathResult, t_TargetEnt, t_TargetId = GetPatchWayToClosestEnt( { case = r_Case, index = r_Index }, g_Attackers )
+			
+				local m_Case, m_Index = FindClosestPoint( self:GetPos(), 1 )
+				m_PathResult, t_TargetEnt, t_TargetId = GetPatchWayToClosestEnt( { case = m_Case, index = m_Index }, g_Attackers )
+
 			end
 
-			if table.Count( t_PathResult ) > 0 then
+			if table.Count( m_PathResult ) > 0 then
 			
-				//if not g_Attackers[ t_TargetId ].ent then g_Attackers[ t_TargetId ].used = true end
+				//if not g_Attackers[ t_TargetId ].m_Ent then g_Attackers[ t_TargetId ].used = true end
 				
 				timer.Remove( "rRotateBack" .. self:EntIndex() )
 				timer.Remove( "rScanner" .. self:EntIndex() )
 				timer.Remove( "rScannerDark"..self:EntIndex() )
 
-				self.rResearch = false
-				self.rMoveStep = 1
+				self.rResearch 	= false
+				self.rMoveStep 	= 1
 				
-				self.rMode = 2
-				self.rModeStatus = 0
-				self.rTargetId = t_TargetId
-				self.rMovePath = t_PathResult
+				self.rMode 			= 2
+				self.rModeStatus 	= 0
+				self.rTargetId 		= t_TargetId
+				self.rMovePath 		= m_PathResult
 				
 			end
 		end
 		
-		local t_MoveTo = self:GetPos() + self:GetForward() * 40 + self:GetRight() * h_YawRot
-		self.rMoveTo = t_MoveTo
+		local t_MoveTo 	= self:GetPos() + self:GetForward() * 40 + self:GetRight() * h_YawRot
+		self.rMoveTo 	= t_MoveTo
 		
 	else
 	
-		//
-		// ======================================= Getting metal
-		//
+		// ======================================= Getting metal ===============================
 		if h_Mode == 1 then
 			
 			local t_TargetMetalId = self.rTargetMetalId
 			
 			if h_ModeStatus == 0 then
 			
-				local mPointPos = Vector( )
-				local mPointInfo = g_MetalPoints[ t_TargetMetalId ]
+				local mPointPos 	= Vector( )
+				local mPointInfo 	= g_MetalPoints[ t_TargetMetalId ]
 				
 				if mPointInfo then
 
-					if mPointInfo.ent and mPointInfo.ent:IsValid() then mPointPos = mPointInfo.ent:GetPos()
+					if mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() then mPointPos = mPointInfo.m_Ent:GetPos()
 					elseif mPointInfo.pos then mPointPos = mPointInfo.pos else self.rResearch = true end
 
 				end
 				
-				if ground.HitPos:Distance( mPointPos ) < 50 then self.rMoveMode = 0
+				if h_Ground.HitPos:Distance( mPointPos ) < 50 then self.rMoveMode = 0
 				else self.rMoveMode = 1 end
-				
-				//print( ground.MatType == MAT_METAL, ( ground.HitWorld and ground.HitPos:Distance( mPointPos ) ) < 20, ( mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() and ground.Entity == mPointInfo.ent ))
-				
-				if ground.MatType == MAT_METAL and ( ( ground.HitWorld and ground.HitPos:Distance( mPointPos ) < 20 )
-					or ( mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() and ground.Entity == mPointInfo.ent ) ) then
+								
+				if h_Ground.MatType == MAT_METAL and ( ( h_Ground.HitWorld and h_Ground.HitPos:Distance( mPointPos ) < 20 )
+					or ( mPointInfo and mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() and h_Ground.Entity == mPointInfo.m_Ent ) ) then
 
 					timer.Remove( "rRefind" .. self:EntIndex() )
 					timer.Remove( "rWalking" .. self:EntIndex() )
 					timer.Remove( "rRun" .. self:EntIndex() )
-					t_StandAnimReset = true
+					h_StandAnimReset = true
 					
-					self.rMove = false
-					self.rMoveStep = 0
-					self.rModeStatus = 1
+					self.rMove 			= false
+					self.rMoveStep 		= 0
+					self.rModeStatus	= 1
 					
 					if mPointInfo then
 					
-						if mPointInfo.ent and mPointInfo.ent:IsValid() then
+						if mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() then
 						
-							constraint.Weld( mPointInfo.ent, self, 0, 0, 0, collision == true, false )
+							constraint.Weld( mPointInfo.m_Ent, self, 0, 0, 0, collision == true, false )
 							self.rDisableMovining = true
 							
 						end
-						
-						//else h_phys:EnableMotion( false ) end
-						
 					end
 				end
 				
-			// ========================== Eating metal
+			// ========================== Eating metal ======================
 			elseif h_ModeStatus == 1 then
 				
-				//self:NextThink( CurTime() + 100 )
-				local t_Name = "rEating"..self:EntIndex()
+				local m_Name = "rEating"..self:EntIndex()
 				
-				if not timer.Exists( t_Name ) then
+				if not timer.Exists( m_Name ) then
 				
-					timer.Create( t_Name, CNRPlaySequence( self, "eating" ), 0, function()
+					timer.Create( m_Name, CNRPlaySequence( self, "eating" ), 0, function()
 					
 						if self:IsValid() then
 						
 							local t_TargetMetalId = self.rTargetMetalId
 							local mPointInfo = g_MetalPoints[ t_TargetMetalId ]
 
-							local t_targetMetalAmount = 0
-							if mPointInfo then t_targetMetalAmount = mPointInfo.amount end
+							local t_m_TargetMetalAmount = 0
+							if mPointInfo then t_m_TargetMetalAmount = mPointInfo.amount end
 							
-							local t_rMetalAmount = self.rMetalAmount
-
+							local m_MetalAmount = self.rMetalAmount
 							local h_ModeStatus = self.rModeStatus
+							local m_Amount = g_replicator_collection_speed
 
-							//self:NextThink( CurTime() )
-							
-							local t_Amount = g_replicator_collection_speed
+							if t_m_TargetMetalAmount < g_replicator_collection_speed then m_Amount = t_m_TargetMetalAmount end
 
-							if t_targetMetalAmount < g_replicator_collection_speed then t_Amount = t_targetMetalAmount end
-
-							// --------- Next Step
-							if not ( t_rMetalAmount + t_Amount < g_segments_to_assemble_replicator
-							
-								or table.Count( g_QueenCount ) == 0 and t_rMetalAmount + t_Amount < ( g_segments_to_assemble_queen - g_segments_to_assemble_replicator )) then
+							if not ( ( m_MetalAmount + m_Amount ) < g_segments_to_assemble_replicator
+								or table.Count( g_QueenCount ) == 0 and m_MetalAmount + m_Amount < ( g_segments_to_assemble_queen - g_segments_to_assemble_replicator ) ) then
 
 								timer.Remove( "rEating"..self:EntIndex() )
 								
-								self.rModeStatus = 2
-								self.rMove = true
-								self.rMoveMode = 1
-								self.rDisableMovining = false
+								self.rModeStatus 		= 2
+								self.rMove 				= true
+								self.rMoveMode 			= 1
+								self.rDisableMovining 	= false
 
-								//h_phys:EnableMotion( true )
-								if mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() then constraint.RemoveAll( self ) end
+								if mPointInfo and mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() then constraint.RemoveAll( self ) end
 								
 							end
 							
-							if t_targetMetalAmount == 0 then
-								
-								//MsgC( Color( 0, 255, 255 ), "AMOUNT 0\n" )
+							if t_m_TargetMetalAmount == 0 then
 								
 								timer.Remove( "rEating"..self:EntIndex() )
 								
-								self.rDisableMovining = false
-								self.rResearch = true
-								self.rModeStatus = 0
-								//h_phys:EnableMotion( true )
+								self.rDisableMovining 	= false
+								self.rResearch			= true
+								self.rModeStatus 		= 0
 
-								if mPointInfo and ( mPointInfo.ent and mPointInfo.ent:IsValid() ) then
-									MsgC( Color( 0, 255, 255 ), "REMOVE METAL ", mPointInfo.ent, "\n" )
+								if mPointInfo and ( mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() ) then
+									MsgC( Color( 0, 255, 255 ), "REMOVE METAL ", mPointInfo.m_Ent, "\n" )
 								
 									self.rTargetEnt = Entity( 0 )
 									
-									if mPointInfo.ent and mPointInfo.ent:IsValid() then
+									if mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() then
 									
 										constraint.RemoveAll( self )
-										CNRDissolveEntity( mPointInfo.ent )
-										g_MetalPointsAsigned[ "_"..mPointInfo.ent:EntIndex() ] = nil
+										CNRDissolveEntity( mPointInfo.m_Ent )
+										g_MetalPointsAsigned[ "_"..mPointInfo.m_Ent:EntIndex() ] = nil
 										
 									end
 									
@@ -372,100 +285,91 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 
 							if mPointInfo and g_MetalPoints[ t_TargetMetalId ] then
 							
-								if mPointInfo.ent then g_MetalPoints[ t_TargetMetalId ].amount = t_targetMetalAmount - t_Amount
-								elseif mPointInfo.pos then UpdateMetalPoint( t_TargetMetalId, t_targetMetalAmount - t_Amount ) end
+								if mPointInfo.m_Ent then g_MetalPoints[ t_TargetMetalId ].amount = t_m_TargetMetalAmount - m_Amount
+								elseif mPointInfo.pos then UpdateMetalPoint( t_TargetMetalId, t_m_TargetMetalAmount - m_Amount ) end
 								
 							end
 							
-							t_rMetalAmount = t_rMetalAmount + t_Amount
-							
-							//MsgC( Color( 150, 150, 255 ), "Eat metal " ,t_Amount, " ", t_targetMetalAmount, " ", t_rMetalAmount, "\n" )
-							self.rMetalAmount = t_rMetalAmount
+							m_MetalAmount = m_MetalAmount + m_Amount
+							self.rMetalAmount = m_MetalAmount
 							
 						end
 					end )
 				end
 				
-			// ============================== Transporting metal
+			// ============================== Transporting metal ======================
 			elseif h_ModeStatus == 2 then
 
-				local t_QueenFounded = false
-				
-				//print( table.Count( g_QueenCount ), "<" , math.ceil( table.Count( g_WorkersCount ) / g_amount_of_worker_for_one_queen ) )
-				//and table.Count( g_QueenCount ) < math.ceil( table.Count( g_WorkersCount ) / g_amount_of_worker_for_one_queen )
-				
+				local m_QueenFounded = false
+								
 				if table.Count( g_QueenCount ) > 0 then
 				
-					local t_PathResult
-					local t_QueenEnt = Entity( 0 )
+					local m_PathResult	= { }
+					local m_QueenEnt 	= Entity( 0 )
 					
 					if self.rTargetGueen:IsValid() then
 					
-						t_PathResult = self.rMovePath
-						t_QueenEnt = self.rTargetGueen
+						m_PathResult 	= self.rMovePath
+						m_QueenEnt 		= self.rTargetGueen
 						
 						self.rMoveReverse = false
 					else
-						t_PathResult = { self:GetPos() }
+						m_PathResult = { self:GetPos() }
 
-						local t_PathGet
-						local r_Case, r_Index = FindClosestPoint( self:GetPos(), 1 )
+						local t_Path = {}
+						local m_Case, m_Index = FindClosestPoint( self:GetPos(), 1 )
 
-						t_PathGet, t_QueenEnt = GetPatchWayToClosestEnt( { case = r_Case, index = r_Index }, g_QueenCount )
+						t_PathGet, m_QueenEnt = GetPatchWayToClosestEnt( { case = m_Case, index = m_Index }, g_QueenCount )
 						
-						table.Add( t_PathResult, t_PathGet )
+						table.Add( m_PathResult, t_PathGet )
 					end
 					
-					if table.Count( t_PathResult ) > 0 and t_QueenEnt:IsValid() then
+					if table.Count( m_PathResult ) > 0 and m_QueenEnt:IsValid() then
 					
 						self.rMode = 1
 						self.rModeStatus = 3
 						
-						self.rTargetGueen = t_QueenEnt
+						self.rTargetGueen = m_QueenEnt
 						
 						self.rMove = true
 						self.rMoveMode = 1
 						
 						self.rMoveStep = 1
-						self.rMovePath = t_PathResult
+						self.rMovePath = m_PathResult
 						
-						t_QueenFounded = true
+						m_QueenFounded = true
 						
 					end
 					
-				elseif not t_QueenFounded then
+				elseif not m_QueenFounded then
 				
-					local t_MetalId = self.rTargetMetalId
-					//print( "____", t_MetalId )
-					//PrintTable( g_MetalPoints[ t_MetalId ] )
-					
-					if g_MetalPoints[ t_MetalId ] and g_MetalPoints[ t_MetalId ].used then g_MetalPoints[ t_MetalId ].used = false end
+					local m_MetalId = self.rTargetMetalId
+
+					if g_MetalPoints[ m_MetalId ] and g_MetalPoints[ m_MetalId ].used then g_MetalPoints[ m_MetalId ].used = false end
 					
 					if table.Count( g_DarkPoints ) > 0 then
 						
-						local t_MetalId = self.rTargetMetalId
+						local m_MetalId = self.rTargetMetalId
 
-						if g_MetalPoints[ t_MetalId ].used then g_MetalPoints[ t_MetalId ].used = false end
+						if g_MetalPoints[ m_MetalId ].used then g_MetalPoints[ m_MetalId ].used = false end
 						
-						local r_Case, r_Index = FindClosestPoint( self:GetPos(), 1 )
-						local t_PathResult, t_DarkId = GetPatchWayToClosestId( { case = r_Case, index = r_Index }, g_DarkPoints )
+						local m_Case, m_Index = FindClosestPoint( self:GetPos(), 1 )
+						local m_PathResult, m_DarkId = GetPatchWayToClosestId( { case = m_Case, index = m_Index }, g_DarkPoints )
 						
-						if table.Count( t_PathResult ) > 0 then
+						if table.Count( m_PathResult ) > 0 then
 						
-							//PrintTable( t_PathResult )
-							
-							g_DarkPoints[ t_DarkId ].used = true
+							g_DarkPoints[ m_DarkId ].used = true
 							
 							self.rMode = 4
 							self.rModeStatus = 1
 
 							self.rMoveReverse = false
 							
-							self.rTargetDarkId = t_DarkId
+							self.rTargetDarkId = m_DarkId
 							
 							self.rMove= true
 							self.rMoveStep = 1
-							self.rMovePath = t_PathResult
+							self.rMovePath = m_PathResult
 							
 						else self.rResearch = true end
 						
@@ -474,10 +378,10 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 				
 			elseif h_ModeStatus == 3 then
 			
-				// ======================= Wait until replicator walked to queen
-				local t_QueenEnt = self.rTargetGueen
+				// ======================= Wait until Replicator reaches queen ======================
+				local m_QueenEnt = self.rTargetGueen
 				
-				if t_QueenEnt:GetPos():Distance( self:GetPos() ) < 40 then
+				if m_QueenEnt:GetPos():Distance( self:GetPos() ) < 40 then
 				
 					self.rModeStatus = 4
 					self.rMove = false
@@ -486,25 +390,25 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 				
 			elseif h_ModeStatus == 4 then
 
-				// ======================= Qiving metal
-				local t_Name = "rGiving"..self:EntIndex()
+				// ======================= Giving metal ==========================
+				local m_Name = "rGiving"..self:EntIndex()
 				
-				if not timer.Exists( t_Name ) then
+				if not timer.Exists( m_Name ) then
 				
-					timer.Create( t_Name, CNRPlaySequence( self, "stand" ), 0, function()
+					timer.Create( m_Name, CNRPlaySequence( self, "stand" ), 0, function()
 					
 						if self:IsValid() then
 						
 							self:NextThink( CurTime() )
 						
-							local t_QueenEnt = self.rTargetGueen
+							local m_QueenEnt = self.rTargetGueen
 
-							local t_rMetalAmount = math.min( g_replicator_giving_speed, self.rMetalAmount )
+							local m_MetalAmount = math.min( g_replicator_giving_speed, self.rMetalAmount )
 							
-							if t_QueenEnt and t_QueenEnt:IsValid() then
+							if m_QueenEnt and m_QueenEnt:IsValid() then
 							
-								t_QueenEnt.rMetalAmount = t_QueenEnt.rMetalAmount + t_rMetalAmount
-								self.rMetalAmount = self.rMetalAmount - t_rMetalAmount
+								m_QueenEnt.rMetalAmount = m_QueenEnt.rMetalAmount + m_MetalAmount
+								self.rMetalAmount = self.rMetalAmount - m_MetalAmount
 								
 							else MsgC( Color( 255, 0, 0 ), "ERROR queen doesn't found ( giving )\n" ) self.rModeStatus = 2 end
 							
@@ -523,57 +427,59 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 				end
 			end
 			
-		elseif h_Mode == 2 then // =================================================== ATTACK MODE
+		// ===================== Attack mode ======================
+		elseif h_Mode == 2 then
 		
 			if h_ModeStatus == 0 then
 			
-				local target = g_Attackers[ self.rTargetId ]
+				local m_Target = g_Attackers[ self.rTargetId ]
 				
-				if target and target:IsValid() then
+				if m_Target and m_Target:IsValid() then
 				
-					local filter = { }
-					table.Add( filter, g_ReplicatorNoCollideGroupWith )
-					table.Add( filter, { "player" } )
+					local m_Filter = { }
+					table.Add( m_Filter, g_ReplicatorNoCollideGroupWith )
+					table.Add( m_Filter, { "player" } )
 					
-					local trace, trDist = CNRTraceLine( self:GetPos(), target:GetPos(), filter )
+					local m_Trace, m_TraceDist = CNRTraceLine( self:GetPos(), m_Target:GetPos(), m_Filter )
 					
-					if not trace.Hit then
+					if not m_Trace.Hit then
 					
-						self.rMoveTo = target:GetPos()
+						self.rMoveTo = m_Target:GetPos()
 						timer.Start( "rRefind"..self:EntIndex() )
 						
-						if target:GetPos():Distance( self:GetPos() ) < 100 then
+						if m_Target:GetPos():Distance( self:GetPos() ) < 100 then
 						
-							if ground.Hit then
+							if h_Ground.Hit then
 							
-								if ground.Entity == target then
+								if h_Ground.Entity == m_Target then
 								
-									h_phys:SetAngles( ( target:GetPos() - h_phys:GetPos() ):Angle() + Angle( -90, 0, 0 ) )
-									h_phys:SetPos( ground.HitPos )
+									h_Phys:SetAngles( ( m_Target:GetPos() - h_Phys:GetPos() ):Angle() + Angle( -90, 0, 0 ) )
+									h_Phys:SetPos( h_Ground.HitPos )
 
-									self.rModeStatus = 1
-									self.rMove = false
+									self.rModeStatus 	= 1
+									self.rMove 			= false
+									h_StandAnimReset 	= true
 									
-									h_phys:EnableCollisions( false )
+									h_Phys:EnableCollisions( false )
 									timer.Remove( "rRefind"..self:EntIndex() )
 
-									if target:IsPlayer() or target:IsNPC() then self:SetParent( target, 1 )
-									else self:SetParent( target, -1 ) end
+									if m_Target:IsPlayer() or m_Target:IsNPC() then self:SetParent( m_Target, 1 )
+									else self:SetParent( m_Target, -1 ) end
 									
 								else
 								
 									self.rDisableMovining = true
-									h_phys:SetVelocity( Vector( 0, 0, 200 ) + ( target:GetPos() - h_phys:GetPos() ) * 2 )
+									h_Phys:SetVelocity( Vector( 0, 0, 200 ) + ( m_Target:GetPos() - h_Phys:GetPos() ) * 2 )
 									
 								end
 								
 							else
 							
-								local JUANG = self:WorldToLocalAngles( ( target:GetPos() - h_phys:GetPos() ):Angle() ).y
+								local JUANG = self:WorldToLocalAngles( ( m_Target:GetPos() - h_Phys:GetPos() ):Angle() ).y
 								local zeroAng = self:WorldToLocalAngles( Angle( -50, JUANG + self:GetAngles().yaw, 0 ) )
 
-								h_phys:AddAngleVelocity( Vector( zeroAng.z, zeroAng.x, zeroAng.y ) * 6 - h_phys:GetAngleVelocity() )
-								//h_phys:SetVelocity( Vector( 0, 0, 100 ) + ( target:GetPos() - h_phys:GetPos() ) )
+								h_Phys:AddAngleVelocity( Vector( zeroAng.z, zeroAng.x, zeroAng.y ) * 6 - h_Phys:GetAngleVelocity() )
+
 							end
 							
 						else self.rDisableMovining = false end
@@ -585,56 +491,54 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 			
 				local name = "rDamagining"..self:EntIndex()
 				
-				local function UnParent( self, h_phys, target, targetCase )
+				local function UnParm_Ent( self, h_Phys, m_Target, m_TargetCase )
 				
 					constraint.RemoveAll( self )
 					
-					self.rMode = 0
-					self.rMoveStatus = 0
-					self.rResearch = true
-					self.rMove = true
-					self.rTargetId = ""
-					self.rDisableMovining = false 
+					self.rMode 				= 0
+					self.rMoveStatus 		= 0
+					self.rResearch 			= true
+					self.rMove 				= true
+					self.rTargetId 			= ""
+					self.rDisableMovining 	= false 
 					
 					timer.Remove( name )
 					
 					self:SetParent( NULL )
+					h_Phys:EnableCollisions( true )
 					
-					h_phys:EnableCollisions( true )
+					if m_Target then g_Attackers[ m_TargetCase ] = nil end
 					
-					if target then
-					
-						g_Attackers[ targetCase ] = nil
-						
-					end
 				end
 
 				if not timer.Exists( name ) then
 				
+					h_StandAnimReset = true
+
 					timer.Create( name, CNRPlaySequence( self, "eating" ), 0, function()
-					
-						local target = g_Attackers[ self.rTargetId ]
-						target:TakeDamage( 25, self, self )
-						h_phys = self:GetPhysicsObject()
 						
-						if target then
+						local m_Target = g_Attackers[ self.rTargetId ]
+						m_Target:TakeDamage( 25, self, self )
+						h_Phys = self:GetPhysicsObject()
 						
-							if target:Health() <= 0 then UnParent( self, h_phys, target, self.rTargetId ) end
+						if m_Target then
+						
+							if m_Target:Health() <= 0 then UnParm_Ent( self, h_Phys, m_Target, self.rTargetId ) end
 							
-						else UnParent( self, h_phys ) end
+						else UnParm_Ent( self, h_Phys ) end
 						
 					end )
 				end
 				
 				if self.rTargetId then
 				
-					local target = g_Attackers[ self.rTargetId ]
+					local m_Target = g_Attackers[ self.rTargetId ]
 					
-					if target then
+					if m_Target then
 					
-						if target:Health() <= 0 then UnParent( self, h_phys, target, self.rTargetId ) end
+						if m_Target:Health() <= 0 then UnParm_Ent( self, h_Phys, m_Target, self.rTargetId ) end
 						
-					else UnParent( self, h_phys ) end
+					else UnParm_Ent( self, h_Phys ) end
 					
 				end
 				
@@ -642,29 +546,29 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 			end
 			
 		elseif h_Mode == 3 then
+			
+		// ===================== Transporting mode ======================
 		elseif h_Mode == 4 then
 		
-			// ------ Finding dark spot to assemble into queen
-			
 			if h_ModeStatus == 1 then
 			
-				local t_DarkId = self.rTargetDarkId
+				local m_DarkId = self.rTargetDarkId
 			
-				if ground.HitPos:Distance( g_DarkPoints[ t_DarkId ].pos ) < 50 then self.rMoveMode = 0
+				if h_Ground.HitPos:Distance( g_DarkPoints[ m_DarkId ].pos ) < 50 then self.rMoveMode = 0
 				else self.rMoveMode = 1 end
 
-				if g_DarkPoints[ t_DarkId ].pos:Distance( ground.HitPos ) < 10 then
+				if g_DarkPoints[ m_DarkId ].pos:Distance( h_Ground.HitPos ) < 10 then
 					
 					timer.Remove( "rWalking" .. self:EntIndex() )
 					timer.Remove( "rRun" .. self:EntIndex() )
 					timer.Remove( "rRefind"..self:EntIndex() )
-					t_StandAnimReset = true
 					
-					self.rMove = false
-					self.rMoveStep = 0
-					self.rModeStatus = 2
+					h_StandAnimReset 	= true
 					
-
+					self.rMove 			= false
+					self.rMoveStep		= 0
+					self.rModeStatus	= 2
+					
 					timer.Simple( CNRPlaySequence( self, "crafting_start" ), function()
 					
 						// IF QUEEN
@@ -683,49 +587,49 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 							
 								if self.rMetalAmount >= 1 then
 								
-									local ent = ents.Create( "replicator_segment" )
+									local m_Ent = m_Ents.Create( "replicator_segmm_Ent" )
 									self:EmitSound( "physics/metal/weapon_impact_soft" .. math.random( 1, 3 ) .. ".wav", 60, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
 									
-									if ( !IsValid( ent ) ) then return end
-									ent:SetPos( self:GetPos() + self:GetForward() * 6 - self:GetUp() * 3 )
-									ent:SetAngles( AngleRand() )
-									ent:SetOwner( self:GetOwner() )
-									ent:Spawn()
+									if ( !IsValid( m_Ent ) ) then return end
+									m_Ent:SetPos( self:GetPos() + self:GetForward() * 6 - self:GetUp() * 3 )
+									m_Ent:SetAngles( AngleRand() )
+									m_Ent:SetOwner( self:GetOwner() )
+									m_Ent:Spawn()
 									
 									if replicatorType == 1 then
 									
-										ent.rCraftingQueen = true
+										m_Ent.rCraftingQueen = true
 										
 									end
 									
-									local phys = ent:GetPhysicsObject()
-									phys:Wake()
-									phys:SetVelocity( VectorRand() * 40 + self:GetForward() * 60 )	
+									local h_Phys = m_Ent:GetPhysicsObject()
+									h_Phys:Wake()
+									h_Phys:SetVelocity( VectorRand() * 40 + self:GetForward() * 60 )	
 									
 									self.rMetalAmount = self.rMetalAmount - 1
 									
 								elseif replicatorType != 2 then
 								
-									// ------------------------------- Self Destruction
+									// ====================== Self Destruction ======================
 									
 									table.RemoveByValue( g_WorkersCount, self )
 
-									g_DarkPoints[ t_DarkId ].used = false
+									g_DarkPoints[ m_DarkId ].used = false
 									
 									for i = 1, g_segments_to_assemble_replicator do
 	
-										local ent = ents.Create( "replicator_segment" )
+										local m_Ent = m_Ents.Create( "replicator_segmm_Ent" )
 										
-										if not IsValid( ent ) then return end
-										ent:SetPos( self:GetPos() + VectorRand() * 3 )
-										ent:SetOwner( self:GetOwner() )
-										ent:Spawn()
+										if not IsValid( m_Ent ) then return end
+										m_Ent:SetPos( self:GetPos() + VectorRand() * 3 )
+										m_Ent:SetOwner( self:GetOwner() )
+										m_Ent:Spawn()
 										
-										ent.rCraftingQueen = true
+										m_Ent.rCraftingQueen = true
 										
-										local phys = ent:GetPhysicsObject()
-										phys:Wake()
-										phys:SetVelocity( VectorRand() * 100 )
+										local h_Phys = m_Ent:GetPhysicsObject()
+										h_Phys:Wake()
+										h_Phys:SetVelocity( VectorRand() * 100 )
 										
 									end
 									
@@ -733,282 +637,25 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 									
 								end
 							end
-							
 						end )
 					end )
-					
-					//h_phys:EnableMotion( false )
-					//h_phys:EnableCollisions( false )
 				end
 
 			elseif h_ModeStatus == 2 then
 			end
 		end
 	end
+	// ========================================= Creating path web ===================================
+
+	REPLICATOR.CreatingPath( self, h_Ground )
 	
-	//
-	// =============== Wall climbing / walking system
-	//
-
-	//print( h_phys:IsGravityEnabled() )
-	if not self:IsPlayerHolding() and h_phys:IsGravityEnabled() and not self.rDisableMovining then
+	// ========================================= Wall climbing / walking system ===================================
 	
-		if groundDist > 0 then
-		
-			if ground.Hit then
-			
-				local t_height = 0
-				
-				if replicatorType == 1 then t_height = 0
-				elseif replicatorType == 2 then t_height = 6 end
-				
-				h_phys:EnableMotion( false )
-				
-				if h_Move then
-					
-					local forward = {}
-					local forwardDist = 0
-					
-					local lForward = {}
-					local lForwardDist = 0
-					
-					local fordown = {}
-					local fordownDist = 0
-					
-					if replicatorType == 1 then
-					
-						forward, forwardDist = CNRTraceHullQuick( 
-							self:GetPos() + self:GetUp() * 2, 
-							self:GetForward() * 20, 
-							Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
-
-					elseif replicatorType == 2 then
-					
-						forward, forwardDist = CNRTraceHullQuick( 
-							self:GetPos() + self:GetUp() * 4, 
-							self:GetForward() * 20, 
-							Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
-					end
-
-					if forward.Hit then
-					
-						local t_MoveStep = self.rMoveStep
-						local t_Rotation = 1200
-						
-						if t_MoveStep == 0 then self.rMoveTo = forward.HitPos end
-						
-						if replicatorType == 1 then t_Rotation = 4000 * math.max( 1 - forwardDist / 20, 0.1 )
-						elseif replicatorType == 2 then t_Rotation = 4000 * math.max( 1 - forwardDist / 20, 0.1 )
-						end
-						
-						t_AngleOffset = t_AngleOffset + Angle( -t_Rotation / 40, 0, 0 )
-						
-					else
-						if replicatorType == 1 then
-						
-							fordown, fordownDist = CNRTraceHullQuick( 
-								self:GetPos() + self:GetForward() * 10, 
-								-self:GetUp() * 10,
-								Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
-								
-						elseif replicatorType == 2 then
-						
-							fordown, fordownDist = CNRTraceHullQuick( 
-								self:GetPos() + self:GetForward() * 20, 
-								-self:GetUp() * 10, 
-								Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
-						end
-						
-						if not fordown.Hit then
-						
-							local t_Rotation = 0
-							
-							if replicatorType == 1 then t_Rotation = 20
-							elseif replicatorType == 2 then t_Rotation = 20 end
-							
-							t_AngleOffset = t_AngleOffset + Angle( t_Rotation, 0, 0 )
-							
-						end
-						
-					end
-					
-					if forward.Hit or not fordown.Hit then t_Offset = t_Offset / 4 end
-
-					if replicatorType == 1 then
-
-						if h_MoveMode == 0 then t_Offset:Add( self:GetForward() * 2 )
-						else t_Offset:Add( self:GetForward() * 4 ) end
-						
-					elseif replicatorType == 2 then
-					
-						if h_MoveMode == 0 then t_Offset:Add( self:GetForward() * 5 )
-						else t_Offset:Add( self:GetForward() * 7 ) end
-					
-					end
-					
-					local JUANG = self:WorldToLocalAngles( ( self.rMoveTo - h_phys:GetPos() ):Angle() ).y
-					net.Start( "debug_rDrawPoint" ) net.WriteEntity( self ) net.WriteVector( self.rMoveTo ) net.Broadcast()
-
-					t_AngleOffset = t_AngleOffset + Angle( 0, JUANG / 5, 0 )
-					t_Offset = t_Offset / math.max( math.abs( JUANG ) / 30, 1 )
-					
-				end
-				
-				local W2L_vec, W2L_ang = WorldToLocal( Vector(), self:GetAngles(), Vector(), ground.HitNormal:Angle() + Angle( 90, 0, 0 ) )
-				W2L_vec, W2L_ang = LocalToWorld( Vector(), Angle( 0, W2L_ang.yaw, 0 ), Vector(), ground.HitNormal:Angle() + Angle( 90, 0, 0 ) )
-				W2L_ang = self:WorldToLocalAngles( W2L_ang )
-				
-				t_AngleOffset = t_AngleOffset + Angle( W2L_ang.pitch / 4 , W2L_ang.yaw / 4 , W2L_ang.roll / 4 )
-				
-				local t_DistAccess
-				
-				if replicatorType == 1 then t_DistAccess = 25
-				elseif replicatorType == 2 then t_DistAccess = 35
-				end
-				
-				if groundDist < t_DistAccess then
-					t_Offset:Add( ( ground.HitPos + self:GetUp() * t_height - self:GetPos() ) / 2 )
-				end
-
-			else
-				h_phys:EnableMotion( true )
-				
-				local ceiling = {}
-				
-				if replicatorType == 1 then
-				
-					ceiling = CNRTraceHullQuick( 
-						self:GetPos(), 
-						self:GetUp() * 15, 
-						Vector( 15, 15, 15 ), g_ReplicatorNoCollideGroupWith )
-						
-				elseif replicatorType == 2 then
-				
-					ceiling = CNRTraceHullQuick( 
-						self:GetPos(), 
-						self:GetUp() * 15, 
-						Vector( 20, 20, 20 ), g_ReplicatorNoCollideGroupWith )
-				end
-					
-				//if ceiling.Hit then
-				
-					local zeroAng = self:WorldToLocalAngles( Angle( 0, self:GetAngles().y, 0 ) )
-					h_phys:AddAngleVelocity( Vector( zeroAng.z, zeroAng.x, 0 ) * 10 - h_phys:GetAngleVelocity() )
-					
-				//end
-			end
-
-			self.rPrevPosition = { pos = h_phys:GetPos(), angle = h_phys:GetAngles() }
-			
-		elseif not h_phys:IsMotionEnabled() then
-		
-			t_Offset = Vector()
-			t_AngleOffset = Angle()
-			
-			h_phys:SetPos( self.rPrevPosition.pos )
-			
-			h_phys:SetAngles( self.rPrevPosition.angle )
-
-			h_phys:EnableMotion( true )
-			h_phys:Wake()
-			self:PhysWake()
-			
-			self.rPrevPointId = { }
-			self.rPrevPos = self:GetPos()
-			
-		else
-		
-			self.rPrevPointId = { }
-			self.rPrevPos = self:GetPos()
-			
-		end
-		
-		//
-		// ========================================== Path moving
-		//
-		local point = {}		
-		
-		if h_PrevInfo and g_PathPoints[ h_PrevInfo.case ] then point = g_PathPoints[ h_PrevInfo.case ][ h_PrevInfo.index ] end
-		
-		if ground.Hit then	
-
-			REPLICATOR.ReplicatorMovingOnPath( self, h_phys, ground )
-			
-			h_phys:SetPos( h_phys:GetPos() + t_Offset )
-			h_phys:SetAngles( self:LocalToWorldAngles( t_AngleOffset ) )
-			
-			// ========================== Pathway
-			local t_height = 0
-			
-			if groundDist != 0 then
-			
-				if replicatorType == 1 then t_height = 5
-				elseif replicatorType == 2 then t_height = 7 end
-				
-			end
-			
-			local t_pPoint = ground.HitPos - self:GetUp() * t_height
-			
-			if table.Count( point ) > 0 then
-			
-				local prevPos = self.rPrevPos
-				self.rPrevPos = self:GetPos()
-				
-				
-				if point.pos:Distance( ground.HitPos ) > 50 then
-
-					local info, merge = AddPathPoint( t_pPoint, { h_PrevInfo }, ground.Entity )
-					self.rPrevPointId = info
-					
-					net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
-					
-					timer.Start( "rRotateBack" .. self:EntIndex() )
-
-				else
-				
-					local trace, trDist = CNRTraceLine( self:GetPos(), point.pos, g_ReplicatorNoCollideGroupWith )
-
-					if trace.Hit and trDist > 0 then
-					
-						local info, merge = AddPathPoint( self:GetPos(), { h_PrevInfo }, ground.Entity )
-						self.rPrevPointId = info
-						net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
-
-						timer.Start( "rRotateBack" .. self:EntIndex() )
-						
-					end
-				end
-				
-			else
-			
-				local info, merge = AddPathPoint( t_pPoint, { } )
-				self.rPrevPointId = info
-				net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
-				
-				timer.Start( "rRotateBack" .. self:EntIndex() )
-				
-			end
-			
-		elseif table.Count( point ) > 0 and point.pos:Distance( ground.HitPos ) > 50 then
-		
-			self.rPrevPointId = { case = "", index = 0 }
-			net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( Vector( 0, 0, 0 ) ) net.Broadcast()
-			//print( "SPAM" )
-			
-		end
-		
-	else
+	REPLICATOR.ReplicatorWalking( replicatorType, self, h_Ground, h_GroundDist, h_Move, h_MoveMode )
 	
-		h_phys:EnableMotion( true )
-		h_phys:Wake()
-		self:PhysWake()
-
-		self.rPrevPointId = { }
-		self.rPrevPos = self:GetPos()
-		
-	end
+	// =================================== Breaks when bullseye die =============================================
 	
-	if not h_phys:IsGravityEnabled() and h_phys:IsMotionEnabled() then h_phys:SetVelocity( self:GetForward() * h_phys:GetMass() / 2 ) end
+	if not h_Phys:IsGravityEnabled() and h_Phys:IsMotionEnabled() then h_Phys:SetVelocity( self:GetForward() * h_Phys:GetMass() / 2 ) end
 	
 	if self.rReplicatorNPCTarget and ( not self.rReplicatorNPCTarget:IsValid() or self.rReplicatorNPCTarget:IsValid() and self.rReplicatorNPCTarget:Health() <= 0 ) then
 	
@@ -1016,76 +663,26 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 		
 	end
 	
-	//
 	// ==================================================== Animations ===============================================
-	//
 	
-	// ============ Stand animation
-	local t_tNameWalk = "rWalking" .. self:EntIndex()
-	local t_tNameRun = "rRun" .. self:EntIndex()
-
-	if not h_Move then
+	REPLICATOR.ReplicatorWalkingAnimation( replicatorType, self, h_Move, h_MoveMode, h_StandAnimReset )
 	
-		if ( timer.Exists( t_tNameWalk ) or timer.Exists( t_tNameRun ) ) and not t_StandAnimReset then
-			
-			timer.Remove( t_tNameWalk )
-			timer.Remove( t_tNameRun )
-			
-			CNRPlaySequence( self, "stand" )
-			
-		end
-		
-	end
-	
-	// =============================== Walk animation
-	if h_Move and h_MoveMode == 0 and not timer.Exists( t_tNameWalk ) then
-	
-		h_phys:Wake()
-		timer.Remove( t_tNameRun )
-		
-		timer.Create( t_tNameWalk, CNRPlaySequence( self, "walk" ) / 2, 0, function()
-		
-			if self:IsValid() then self:EmitSound( "replicators/replicatorstep" .. math.random( 1, 4 ) .. ".wav", 65, 100 + math.Rand( -25, 25 ), 1, CHAN_AUTO ) end
-			
-		end )
-		
-	end
-	
-	// ============================== Run animation
-	if h_Move and h_MoveMode == 1 and not timer.Exists( t_tNameRun ) then
-
-		h_phys:Wake()
-		timer.Remove( t_tNameWalk )
-		
-		timer.Create( t_tNameRun, CNRPlaySequence( self, "run" ) / 2, 0, function()
-			if self:IsValid() then self:EmitSound( "replicators/replicatorstep" .. math.random( 1, 4 ) .. ".wav", 65, 100 + math.Rand( -25, 25 ), 1, CHAN_AUTO ) end
-		end )
-		
-	end
-
-	
-	//
-	//  ==================================================== Scanner ===============================================
-	//
-	
+	// ==================================================== Scanner ===============================================
 	REPLICATOR.ReplicatorScanningResources( self )
 	
-	local t_Pos = ground.HitPos / 30
-	
-	t_Pos = Vector( math.Round( t_Pos.x, 0 ), math.Round( t_Pos.y, 0 ), math.Round( t_Pos.z, 0 ) ) * 30
-	t_Pos = ( t_Pos.x ).."_"..( t_Pos.y ).."_"..( t_Pos.z )
-	
-	if ground.MatType == MAT_METAL then
-		
-		if ground.HitWorld then 
-			
-			self.rTargetMetalId = t_Pos
-			if not g_MetalPointsAsigned[ t_Pos ] then AddMetalPoint( t_Pos, ground.HitPos, ground.HitNormal, 100 ) end
-		
-		elseif ground.Entity:IsValid() then
+	local m_Pos, m_PosString = convertToGrid( h_Ground.HitPos, 30 )
 
-			self.rTargetMetalId = "_"..ground.Entity:EntIndex()
-			if not g_MetalPointsAsigned[ "_"..ground.Entity:EntIndex() ] then AddMetalEntity( ground.Entity ) end
+	if h_Ground.MatType == MAT_METAL then
+		
+		if h_Ground.HitWorld then 
+			
+			self.rTargetMetalId = m_PosString
+			if not g_MetalPointsAsigned[ m_PosString ] then AddMetalPoint( m_PosString, h_Ground.HitPos, h_Ground.HitNormal, 100 ) end
+		
+		elseif h_Ground.Entity:IsValid() then
+
+			self.rTargetMetalId = "_"..h_Ground.Entity:EntIndex()
+			if not g_MetalPointsAsigned[ "_"..h_Ground.Entity:EntIndex() ] then AddMetalEntity( h_Ground.Entity ) end
 			
 		end
 	end

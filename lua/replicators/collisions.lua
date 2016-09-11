@@ -1,3 +1,9 @@
+--[[
+
+	REPLICATORS Collision segment
+	
+]]
+
 local g_ReplicatorNoCollideGroup = {
 	"replicator_segment",
 	"replicator_queen",

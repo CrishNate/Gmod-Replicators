@@ -1,3 +1,9 @@
+--[[
+
+	REPLICATORS Data
+	
+]]
+
 //=================== Replicators settings ============================
 
 g_segments_to_assemble_replicator 	= 30
@@ -15,7 +21,7 @@ g_PathPoints 		= { }
 g_MetalPoints 		= { } g_MetalPointsAsigned = { }
 g_DarkPoints 		= { }
 
-g_pointIsInvalid 	= { }
+g_PointIsInvalid 	= { }
 g_Attackers 		= { }
 
 g_QueenCount 		= { }

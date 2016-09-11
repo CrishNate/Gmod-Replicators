@@ -1,22 +1,26 @@
 AddCSLuaFile( )
 
+--[[
+
+	REPLICATORS Moving on path
+	
+]]
+
 REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 	
-	local t_MoveStep = self.rMoveStep
+	local h_MoveStep = self.rMoveStep
 
-	if t_MoveStep > 0 then
+	if h_MoveStep > 0 then
 		
-		local t_MovePath = self.rMovePath
+		local m_MovePath = self.rMovePath
 
-		if table.Count( t_MovePath ) > 0 then
-		
-			//print( self.rMode, self.rModeStatus )
+		if table.Count( m_MovePath ) > 0 then
 
-			local t_MoveReverse = self.rMoveReverse
+			local m_MoveReverse = self.rMoveReverse
 		
-			local t_MToPos = Vector()
-			local t_Dist
-			local t_DistTo
+			local m_MToPos 	= Vector()
+			local m_Dist 	= 0
+			local m_DistTo 	= 0
 			
 			local t_Name = "rRefind"..self:EntIndex()
 			
@@ -29,11 +33,7 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 					
 				end
 				
-			else
-			
-				self.rLastPos = self:GetPos()
-				
-			end
+			else self.rLastPos = self:GetPos() end
 			
 			if not timer.Exists( t_Name ) then
 			
@@ -42,129 +42,198 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 					if self:IsValid() then
 					
 						local t_MetalId = self.rTargetMetalId
-						local t_DarkId = self.rTargetDarkId
+						local t_DarkId 	= self.rTargetDarkId
 						
 						if g_MetalPoints[ t_MetalId ] and g_MetalPoints[ t_MetalId ].used then g_MetalPoints[ t_MetalId ].used = false end
 						if g_DarkPoints[ t_DarkId ] and g_DarkPoints[ t_DarkId ].used then g_DarkPoints[ t_DarkId ].used = false end
 
-						self.rResearch = true
-						
-						self.rMove = true
-						self.rMoveMode = 1
-						
-						self.rMoveReverse = false
-						self.rTargetEnt = Entity( 0 )
-						self.rTargetGueen = Entity( 0 )
-						self.rMovePath = {}
+						self.rResearch 		= true
+						self.rMove 			= true
+						self.rMoveMode		= 1
+						self.rMoveReverse 	= false
+						self.rTargetEnt 	= Entity( 0 )
+						self.rTargetGueen 	= Entity( 0 )
+						self.rMovePath 		= {}
 						
 
 						if self.rMode == 1 and self.rModeStatus == 3 then self.rModeStatus = 2 end
 						
-						local case = t_MovePath[ t_MoveStep ].case
+						local m_Case = m_MovePath[ h_MoveStep ].case
 						
-						if not ( ( t_MoveStep == table.Count( t_MovePath ) or t_MoveStep == 1 ) and not g_PathPoints[ case ] ) then
+						if not ( ( h_MoveStep == table.Count( m_MovePath ) or h_MoveStep == 1 ) and not g_PathPoints[ m_Case ] ) then
 						
-							local index = t_MovePath[ t_MoveStep ].index
+							local m_Index = m_MovePath[ h_MoveStep ].index
 							
-							if not g_PointIsInvalid[ case ] then g_PointIsInvalid[ case ] = {} end
-							if not g_PointIsInvalid[ case ][ index ] then g_PointIsInvalid[ case ][ index ] = 0 end
+							if not g_PointIsInvalid[ m_Case ] then g_PointIsInvalid[ m_Case ] = {} end
+							if not g_PointIsInvalid[ m_Case ][ m_Index ] then g_PointIsInvalid[ m_Case ][ m_Index ] = 0 end
 							
-							g_PointIsInvalid[ case ][ index ] = g_PointIsInvalid[ case ][ index ] + 1
-							MsgC( Color( 255, 255, 0 ), "Bad Point", case, " ", index, " ", g_PointIsInvalid[ case ][ index ], "\n" )
+							g_PointIsInvalid[ m_Case ][ m_Index ] = g_PointIsInvalid[ m_Case ][ m_Index ] + 1
+							MsgC( Color( 255, 255, 0 ), "Bad Point", m_Case, " ", m_Index, " ", g_PointIsInvalid[ m_Case ][ m_Index ], "\n" )
 							
-						end
-						
-					//	MsgC( Color( 255, 255, 0 ), t_MoveStep, " ", table.Count( t_MovePath ), " ", not g_PathPoints[ case ], "\n" )
-						
+						end						
 					end
 				end )
 			end
 			
-			local case = t_MovePath[ t_MoveStep ].case
+			local m_Case = m_MovePath[ h_MoveStep ].case
 
-			if t_MoveReverse then
-				//print( "31231231BLA" )
-				if ( t_MoveStep == table.Count( t_MovePath ) or t_MoveStep == 1 ) and not g_PathPoints[ case ] then
+			if m_MoveReverse then
+			
+				if ( h_MoveStep == table.Count( m_MovePath ) or h_MoveStep == 1 ) and not g_PathPoints[ m_Case ] then
 					
-					t_MToPos = t_MovePath[ t_MoveStep ]
+					m_MToPos = m_MovePath[ h_MoveStep ]
 					
-					t_Dist = 20
-					t_DistTo = self:GetPos()
+					m_Dist = 20
+					m_DistTo = self:GetPos()
 					
 				else
 				
-					local index = t_MovePath[ t_MoveStep ].index
+					local m_Index = m_MovePath[ h_MoveStep ].index
 
-					t_MToPos = g_PathPoints[ case ][ index ].pos
+					m_MToPos = g_PathPoints[ m_Case ][ m_Index ].pos
 					
-					t_Dist = 20
-					t_DistTo = ground.HitPos
+					m_Dist = 20
+					m_DistTo = ground.HitPos
 					
 				end
 				
-				if t_MToPos:Distance( t_DistTo ) > t_Dist then
+				if m_MToPos:Distance( m_DistTo ) > m_Dist then
 				
-					self.rMoveTo = t_MToPos
+					self.rMoveTo = m_MToPos
 					
-				elseif t_MoveStep > 1 and not CNRTraceLine( t_MToPos, t_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then
+				elseif h_MoveStep > 1 and not CNRTraceLine( m_MToPos, m_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then
 				
-					self.rMoveStep = t_MoveStep - 1
-					//timer.Start( "rRefind"..self:EntIndex() )
+					self.rMoveStep = h_MoveStep - 1
+
+					if not ( ( h_MoveStep == table.Count( m_MovePath ) or h_MoveStep == 1 ) and not g_PathPoints[ m_Case ] ) then
 					
-					if not ( ( t_MoveStep == table.Count( t_MovePath ) or t_MoveStep == 1 ) and not g_PathPoints[ case ] ) then
-					
-						local index = t_MovePath[ t_MoveStep ].index
+						local m_Index = m_MovePath[ h_MoveStep ].index
 						
-						if g_PointIsInvalid[ case ] and g_PointIsInvalid[ case ][ index ] then
+						if g_PointIsInvalid[ m_Case ] and g_PointIsInvalid[ m_Case ][ m_Index ] then
 						
-							g_PointIsInvalid[ case ][ index ] = 0
-							MsgC( Color( 0, 255, 0 ), "Fixing Point", case, " ", index, " ", g_PointIsInvalid[ case ][ index ], "\n" )
+							g_PointIsInvalid[ m_Case ][ m_Index ] = 0
+							MsgC( Color( 0, 255, 0 ), "Fixing Point", m_Case, " ", m_Index, " ", g_PointIsInvalid[ m_Case ][ m_Index ], "\n" )
 						end
 					end
 				end
 			
 			else
-				//print( "BLA1231231" )
 
-				if ( t_MoveStep == table.Count( t_MovePath ) or t_MoveStep == 1 ) and not g_PathPoints[ case ] then
+				if ( h_MoveStep == table.Count( m_MovePath ) or h_MoveStep == 1 ) and not g_PathPoints[ m_Case ] then
 
-					t_MToPos = t_MovePath[ t_MoveStep ]
+					m_MToPos = m_MovePath[ h_MoveStep ]
 
-					t_Dist = 20
-					t_DistTo = self:GetPos()
+					m_Dist = 20
+					m_DistTo = self:GetPos()
 					
 				else
 				
-					local index = t_MovePath[ t_MoveStep ].index
+					local m_Index = m_MovePath[ h_MoveStep ].index
 
-					t_MToPos = g_PathPoints[ case ][ index ].pos
-					t_Dist = 20
-					t_DistTo = ground.HitPos
+					m_MToPos = g_PathPoints[ m_Case ][ m_Index ].pos
+					m_Dist = 20
+					m_DistTo = ground.HitPos
 					
 				end
 				
-				if t_MToPos:Distance( t_DistTo ) > t_Dist then
+				if m_MToPos:Distance( m_DistTo ) > m_Dist then
 				
-					self.rMoveTo = t_MToPos
+					self.rMoveTo = m_MToPos
 					
-				elseif t_MoveStep < table.Count( t_MovePath ) and not CNRTraceLine( t_MToPos, t_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then
+				elseif h_MoveStep < table.Count( m_MovePath ) and not CNRTraceLine( m_MToPos, m_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then
 				
-					self.rMoveStep = t_MoveStep + 1
-					//timer.Start( "rRefind"..self:EntIndex() )
-
-					if not ( ( t_MoveStep == table.Count( t_MovePath ) or t_MoveStep == 1 ) and not g_PathPoints[ case ] ) then
+					self.rMoveStep = h_MoveStep + 1
 					
-						local index = t_MovePath[ t_MoveStep ].index
+					if not ( ( h_MoveStep == table.Count( m_MovePath ) or h_MoveStep == 1 ) and not g_PathPoints[ m_Case ] ) then
+					
+						local m_Index = m_MovePath[ h_MoveStep ].index
 						
-						if g_PointIsInvalid[ case ] and g_PointIsInvalid[ case ][ index ] then
+						if g_PointIsInvalid[ m_Case ] and g_PointIsInvalid[ m_Case ][ m_Index ] then
 						
-							g_PointIsInvalid[ case ][ index ] = 0
-							MsgC( Color( 0, 255, 0 ), "Fixing Point", case, " ", index, " ", g_PointIsInvalid[ case ][ index ], "\n" )
+							g_PointIsInvalid[ m_Case ][ m_Index ] = 0
+							MsgC( Color( 0, 255, 0 ), "Fixing Point", m_Case, " ", m_Index, " ", g_PointIsInvalid[ m_Case ][ m_Index ], "\n" )
 							
 						end
 					end
 				end
 			end					
 		end
+	end
+end
+
+REPLICATOR.CreatingPath = function( self, h_Ground )
+
+	local h_PrevInfo 	= self.rPrevPointId
+	local h_Phys 		= self:GetPhysicsObject()
+
+	if not self:IsPlayerHolding() and h_Phys:IsGravityEnabled() and not self.rDisableMovining then
+	
+		local h_Point = {}		
+		
+		if h_PrevInfo and g_PathPoints[ h_PrevInfo.case ] then h_Point = g_PathPoints[ h_PrevInfo.case ][ h_PrevInfo.index ] end
+		
+		if h_Ground.Hit then	
+
+			REPLICATOR.ReplicatorMovingOnPath( self, h_Phys, h_Ground )
+			
+			local t_pPoint = h_Ground.HitPos - self:GetUp() * m_Height
+			
+			if table.Count( h_Point ) > 0 then
+			
+				local prevPos = self.rPrevPos
+				self.rPrevPos = self:GetPos()
+				
+				
+				if h_Point.pos:Distance( h_Ground.HitPos ) > 50 then
+
+					local info, merge = AddPathPoint( t_pPoint, { h_PrevInfo }, h_Ground.Entity )
+					self.rPrevPointId = info
+					
+					net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
+					
+					timer.Start( "rRotateBack"..self:EntIndex() )
+
+				else
+				
+					local trace, trDist = CNRTraceLine( self:GetPos(), h_Point.pos, g_ReplicatorNoCollideGroupWith )
+
+					if trace.Hit and trDist > 0 then
+					
+						local info, merge = AddPathPoint( self:GetPos(), { h_PrevInfo }, h_Ground.Entity )
+						self.rPrevPointId = info
+						net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
+
+						timer.Start( "rRotateBack"..self:EntIndex() )
+						
+					end
+				end
+				
+			else
+			
+				local info, merge = AddPathPoint( t_pPoint, { } )
+				self.rPrevPointId = info
+				net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
+				
+				timer.Start( "rRotateBack"..self:EntIndex() )
+				
+			end
+			
+		elseif table.Count( h_Point ) > 0 and h_Point.pos:Distance( h_Ground.HitPos ) > 50 then
+		
+			self.rPrevPointId = { case = "", index = 0 }
+			net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( Vector( 0, 0, 0 ) ) net.Broadcast()
+			//print( "SPAM" )
+			
+		end
+		
+	else
+
+		h_Phys:EnableMotion( true )
+		h_Phys:Wake()
+		self:PhysWake()
+
+		self.rPrevPointId = { }
+		self.rPrevPos = self:GetPos()
+		
 	end
 end

@@ -96,18 +96,12 @@ function ENT:Think()
 
 	self:NextThink( CurTime() + 0.1 )
 
-	//PrintTable( m_metalPoints )
 	if SERVER then
-
-		//
-		// ---------- Replicator Class
-		//
 		
 		REPLICATOR.ReplicatorThink( 1, self )
 		
 	end // SERVER
 
-	// ------------------------- Initialize dark spots
 	if CLIENT then
 
 		REPLICATOR.ReplicatorDarkPointAssig( self )
