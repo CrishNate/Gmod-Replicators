@@ -1,0 +1,9 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "rust/rusty_paint"
+	"$bumpmap" "rust/rusty_paint_normal"
+	"$normalmap" "rust/rusty_paint_normal"
+	"$vertexalpha" 1
+	"$vertexcolor" 1
+	"$surfaceprop" "metal"
+}

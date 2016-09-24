@@ -13,9 +13,11 @@ include( "replicators/keron.lua" )
 include( "replicators/collisions.lua" )
 
 include( "replicators/initialize.lua" )
-include( "replicators/think.lua" )
+include( "replicators/ai.lua" )
 include( "replicators/path_moving.lua" )
 include( "replicators/walk.lua" )
+
+list.Add( "OverrideMaterials", "rust/rusty_paint" )
 
 REPLICATOR.ReplicatorOnTakeDamage = function( replicatorType, self, dmginfo )
 	
@@ -50,7 +52,7 @@ REPLICATOR.ReplicatorOnRemove = function( self )
 	
 	if g_MetalPoints[ h_MetalId ] and g_MetalPoints[ h_MetalId ].used then g_MetalPoints[ h_MetalId ].used = false end
 	if g_DarkPoints[ h_DarkId ] and g_DarkPoints[ h_DarkId ].used then g_DarkPoints[ h_DarkId ].used = false end
-						
+	
 	timer.Remove( "rWalking"..self:EntIndex() )
 	timer.Remove( "rRun"..self:EntIndex() )
 	timer.Remove( "rRotateBack"..self:EntIndex() )

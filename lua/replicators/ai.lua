@@ -6,7 +6,7 @@ AddCSLuaFile( )
 	
 ]]
 
-REPLICATOR.ReplicatorThink = function( replicatorType, self  )
+REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 	
 	// ======================= Varibles =================
 	
@@ -33,6 +33,10 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 		h_Ground, h_GroundDist = CNRTraceHullQuick( self:GetPos() + self:GetUp() * 10, -self:GetUp() * 40, Vector( 8, 8, 8 ), g_ReplicatorNoCollideGroupWith )
 			
 	end
+	
+	// ========================================= Creating path web ===================================
+
+	REPLICATOR.CreatingPath( self, h_Ground )
 
 	// =================================================== Modes ===================================================
 	
@@ -62,13 +66,13 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 		
 		if not timer.Exists( m_Name ) then
 		
-			timer.Create( m_Name, math.Rand( 2, 8 ), 0, function()
+			timer.Create( m_Name, math.Rand( 0.5, 1 ), 0, function()
 			
-				if self:IsValid() then self.rYawRot = math.Rand( 3, -3 ) end
+				if self:IsValid() then self.rYawRot = math.Rand( 30, -30 ) end
 				
 			end )
 		end
-					
+		
 		// ===================== Searching path to a metal ======================
 		
 		local m_MetalAmount = self.rMetalAmount
@@ -99,7 +103,7 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 				timer.Remove( "rRotateBack"..self:EntIndex() )
 				timer.Remove( "rScannerDark"..self:EntIndex() )
 				timer.Remove( "rScanner"..self:EntIndex() )
-
+				
 				self.rResearch = false
 				self.rMoveStep = 1
 				
@@ -188,16 +192,18 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 				
 				if mPointInfo then
 
-					if mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() then mPointPos = mPointInfo.m_Ent:GetPos()
+					if mPointInfo.ent and mPointInfo.ent:IsValid() then mPointPos = mPointInfo.ent:GetPos()
 					elseif mPointInfo.pos then mPointPos = mPointInfo.pos else self.rResearch = true end
 
 				end
 				
 				if h_Ground.HitPos:Distance( mPointPos ) < 50 then self.rMoveMode = 0
 				else self.rMoveMode = 1 end
-								
+				
+				//print( self.rMoveStep )
+				
 				if h_Ground.MatType == MAT_METAL and ( ( h_Ground.HitWorld and h_Ground.HitPos:Distance( mPointPos ) < 20 )
-					or ( mPointInfo and mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() and h_Ground.Entity == mPointInfo.m_Ent ) ) then
+					or ( mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() and h_Ground.Entity == mPointInfo.ent ) ) then
 
 					timer.Remove( "rRefind" .. self:EntIndex() )
 					timer.Remove( "rWalking" .. self:EntIndex() )
@@ -210,9 +216,9 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 					
 					if mPointInfo then
 					
-						if mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() then
+						if mPointInfo.ent and mPointInfo.ent:IsValid() then
 						
-							constraint.Weld( mPointInfo.m_Ent, self, 0, 0, 0, collision == true, false )
+							constraint.Weld( mPointInfo.ent, self, 0, 0, 0, collision == true, false )
 							self.rDisableMovining = true
 							
 						end
@@ -232,6 +238,26 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 						
 							local t_TargetMetalId = self.rTargetMetalId
 							local mPointInfo = g_MetalPoints[ t_TargetMetalId ]
+							local vPoint = Vector()
+
+							if mPointInfo.ent then
+								
+								local t_Hegiht = 0
+								if replicatorType == 1 then t_Hegiht = 4 
+								elseif replicatorType == 2 then t_Hegiht = 12 end
+								vPoint = self:LocalToWorld( Vector( 0, 0, -t_Hegiht ) )
+								
+							else
+							
+								vPoint = mPointInfo.pos - self:GetUp() * 5
+							
+							end
+							
+							local effectdata = EffectData()
+							effectdata:SetOrigin( vPoint )
+							effectdata:SetNormal( self:GetUp() )
+							util.Effect( "acid_spit", effectdata )
+
 
 							local t_m_TargetMetalAmount = 0
 							if mPointInfo then t_m_TargetMetalAmount = mPointInfo.amount end
@@ -252,7 +278,7 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 								self.rMoveMode 			= 1
 								self.rDisableMovining 	= false
 
-								if mPointInfo and mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() then constraint.RemoveAll( self ) end
+								if mPointInfo and mPointInfo.ent and mPointInfo.ent:IsValid() then constraint.RemoveAll( self ) end
 								
 							end
 							
@@ -264,16 +290,16 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 								self.rResearch			= true
 								self.rModeStatus 		= 0
 
-								if mPointInfo and ( mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() ) then
-									MsgC( Color( 0, 255, 255 ), "REMOVE METAL ", mPointInfo.m_Ent, "\n" )
+								if mPointInfo and ( mPointInfo.ent and mPointInfo.ent:IsValid() ) then
+									MsgC( Color( 0, 255, 255 ), "REMOVE METAL ", mPointInfo.ent, "\n" )
 								
 									self.rTargetEnt = Entity( 0 )
 									
-									if mPointInfo.m_Ent and mPointInfo.m_Ent:IsValid() then
+									if mPointInfo.ent and mPointInfo.ent:IsValid() then
 									
 										constraint.RemoveAll( self )
-										CNRDissolveEntity( mPointInfo.m_Ent )
-										g_MetalPointsAsigned[ "_"..mPointInfo.m_Ent:EntIndex() ] = nil
+										CNRDissolveEntity( mPointInfo.ent )
+										g_MetalPointsAsigned[ "_"..mPointInfo.ent:EntIndex() ] = nil
 										
 									end
 									
@@ -285,7 +311,8 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 
 							if mPointInfo and g_MetalPoints[ t_TargetMetalId ] then
 							
-								if mPointInfo.m_Ent then g_MetalPoints[ t_TargetMetalId ].amount = t_m_TargetMetalAmount - m_Amount
+								self:EmitSound( "acid/acid_spit.wav", 60, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
+								if mPointInfo.ent then g_MetalPoints[ t_TargetMetalId ].amount = t_m_TargetMetalAmount - m_Amount
 								elseif mPointInfo.pos then UpdateMetalPoint( t_TargetMetalId, t_m_TargetMetalAmount - m_Amount ) end
 								
 							end
@@ -469,7 +496,7 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 								else
 								
 									self.rDisableMovining = true
-									h_Phys:SetVelocity( Vector( 0, 0, 200 ) + ( m_Target:GetPos() - h_Phys:GetPos() ) * 2 )
+									h_Phys:SetVelocity( Vector( 0, 0, 300 ) + ( m_Target:GetPos() - h_Phys:GetPos() ) * 4 )
 									
 								end
 								
@@ -485,6 +512,11 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 						else self.rDisableMovining = false end
 					end
 					
+				else
+				
+					self.rMode = 0
+					self.rResearch = true0
+				
 				end
 				
 			elseif h_ModeStatus == 1 then
@@ -583,11 +615,11 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 						
 						timer.Create( "rCrafting" .. self:EntIndex(), CNRPlaySequence( self, "crafting" ) / 10, 0, function()
 						
-							if self:IsValid() and false then // BLOCKED
+							if self:IsValid() then // BLOCKED
 							
 								if self.rMetalAmount >= 1 then
 								
-									local m_Ent = m_Ents.Create( "replicator_segmm_Ent" )
+									local m_Ent = ents.Create( "replicator_segment" )
 									self:EmitSound( "physics/metal/weapon_impact_soft" .. math.random( 1, 3 ) .. ".wav", 60, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
 									
 									if ( !IsValid( m_Ent ) ) then return end
@@ -596,11 +628,7 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 									m_Ent:SetOwner( self:GetOwner() )
 									m_Ent:Spawn()
 									
-									if replicatorType == 1 then
-									
-										m_Ent.rCraftingQueen = true
-										
-									end
+									if replicatorType == 1 then m_Ent.rCraftingQueen = true end
 									
 									local h_Phys = m_Ent:GetPhysicsObject()
 									h_Phys:Wake()
@@ -618,10 +646,11 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 									
 									for i = 1, g_segments_to_assemble_replicator do
 	
-										local m_Ent = m_Ents.Create( "replicator_segmm_Ent" )
+										local m_Ent = ents.Create( "replicator_segment" )
 										
 										if not IsValid( m_Ent ) then return end
 										m_Ent:SetPos( self:GetPos() + VectorRand() * 3 )
+										m_Ent:SetAngles( AngleRand() )
 										m_Ent:SetOwner( self:GetOwner() )
 										m_Ent:Spawn()
 										
@@ -645,9 +674,6 @@ REPLICATOR.ReplicatorThink = function( replicatorType, self  )
 			end
 		end
 	end
-	// ========================================= Creating path web ===================================
-
-	REPLICATOR.CreatingPath( self, h_Ground )
 	
 	// ========================================= Wall climbing / walking system ===================================
 	

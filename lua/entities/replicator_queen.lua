@@ -70,7 +70,7 @@ function ENT:Draw()
 	
 		if self:GetVar( "rEffectFrame" ) < 100 then self.rEffectFrame = effectTime + 4 else self.rEffectFrame = 100 end
 		local pos = self:GetPos() - self:GetForward() * 16 - self:GetUp() * 1
-		/*
+		
 		local dlight = DynamicLight( LocalPlayer():EntIndex() )
 		if ( dlight ) then
 			dlight.pos = pos
@@ -82,7 +82,6 @@ function ENT:Draw()
 			dlight.Size = 150
 			dlight.DieTime = CurTime() + 1
 		end
-		*/
 		
 		local emitter = ParticleEmitter( pos, false )
 
@@ -148,7 +147,7 @@ function ENT:Think()
 
 	if SERVER then
 		
-		REPLICATOR.ReplicatorThink( 2, self )
+		REPLICATOR.ReplicatorAI( 2, self )
 		
 	end // SERVER
 

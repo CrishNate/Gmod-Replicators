@@ -85,8 +85,8 @@ REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_Groun
 
 					if replicatorType == 1 then
 
-						if h_MoveMode == 0 then h_Offset:Add( self:GetForward() * 2 )
-						else h_Offset:Add( self:GetForward() * 4 ) end
+						if h_MoveMode == 0 then h_Offset:Add( self:GetForward() * 2.5 )
+						else h_Offset:Add( self:GetForward() * 5 ) end
 						
 					elseif replicatorType == 2 then
 					

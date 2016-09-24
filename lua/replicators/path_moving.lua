@@ -55,7 +55,9 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 						self.rTargetGueen 	= Entity( 0 )
 						self.rMovePath 		= {}
 						
-
+						timer.Create( "rScanner"..self:EntIndex(), math.Rand( 5, 5 ), 1, function() end )
+						timer.Create( "rScannerDark"..self:EntIndex(), math.Rand( 5, 5 ), 1, function() end )
+						
 						if self.rMode == 1 and self.rModeStatus == 3 then self.rModeStatus = 2 end
 						
 						local m_Case = m_MovePath[ h_MoveStep ].case
@@ -98,7 +100,7 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 				end
 				
 				if m_MToPos:Distance( m_DistTo ) > m_Dist then
-				
+					
 					self.rMoveTo = m_MToPos
 					
 				elseif h_MoveStep > 1 and not CNRTraceLine( m_MToPos, m_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then

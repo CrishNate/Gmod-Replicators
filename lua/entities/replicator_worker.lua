@@ -98,7 +98,7 @@ function ENT:Think()
 
 	if SERVER then
 		
-		REPLICATOR.ReplicatorThink( 1, self )
+		REPLICATOR.ReplicatorAI( 1, self )
 		
 	end // SERVER
 

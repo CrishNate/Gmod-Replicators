@@ -80,16 +80,17 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 			
 		end
 		
-		if key == IN_RUN then PrintTable( g_MetalPoints ) end
+		//if key == IN_RUN then PrintTable( g_MetalPoints ) end
 		
-		if key == IN_RELOAD then endPOS = ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10 print( endPOS ) end
-
+		//if key == IN_RELOAD then endPOS = ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10 print( endPOS ) end
+		
+		/*
 		if key == IN_ZOOM then
 		
 			local case, index = FindClosestPoint( ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10, 1 )
 			print( id )
 		end
-		
+
 		if key == IN_USE then
 			local case, index = FindClosestPoint( ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10, 1 )
 
@@ -100,6 +101,14 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 			PrintTable( result )
 			
 			net.Start( "debug_render_rerpl" ) net.WriteTable( result ) net.Broadcast()
+		end
+		*/
+	end
+	
+	if CLIENT then
+	
+		if key == IN_RELOAD then
+			g_PathPoints = { }
 		end
 	end
 end )
@@ -116,7 +125,7 @@ hook.Add( "PostCleanupMap", "replicator_keron_clear", function( )
 	
 	g_QueenCount = { }
 	g_WorkersCount = { }
-	g_pointIsInvalid = { }
+	g_PointIsInvalid = { }
 	
 	m_ID = 0
 	
@@ -287,8 +296,8 @@ if SERVER then
 					
 				end
 				
-				if ( ( g_pointIsInvalid[ v.case ] and g_pointIsInvalid[ v.case ][ v.index ] and g_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not g_pointIsInvalid[ v.case ] or ( g_pointIsInvalid[ v.case ] and not g_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
+				if ( ( g_PointIsInvalid[ v.case ] and g_PointIsInvalid[ v.case ][ v.index ] and g_PointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not g_PointIsInvalid[ v.case ] or ( g_PointIsInvalid[ v.case ] and not g_PointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -357,8 +366,8 @@ if SERVER then
 					
 				end
 				
-				if ( ( g_pointIsInvalid[ v.case ] and g_pointIsInvalid[ v.case ][ v.index ] and g_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not g_pointIsInvalid[ v.case ] or ( g_pointIsInvalid[ v.case ] and not g_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
+				if ( ( g_PointIsInvalid[ v.case ] and g_PointIsInvalid[ v.case ][ v.index ] and g_PointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not g_PointIsInvalid[ v.case ] or ( g_PointIsInvalid[ v.case ] and not g_PointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -440,8 +449,8 @@ if SERVER then
 					
 				end
 				
-				if ( ( g_pointIsInvalid[ v.case ] and g_pointIsInvalid[ v.case ][ v.index ] and g_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not g_pointIsInvalid[ v.case ] or ( g_pointIsInvalid[ v.case ] and not g_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
+				if ( ( g_PointIsInvalid[ v.case ] and g_PointIsInvalid[ v.case ][ v.index ] and g_PointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not g_PointIsInvalid[ v.case ] or ( g_PointIsInvalid[ v.case ] and not g_PointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then
 				
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -520,8 +529,8 @@ if SERVER then
 					
 				end
 				
-				if ( ( g_pointIsInvalid[ v.case ] and g_pointIsInvalid[ v.case ][ v.index ] and g_pointIsInvalid[ v.case ][ v.index ] < 10 )
-						or not g_pointIsInvalid[ v.case ] or ( g_pointIsInvalid[ v.case ] and not g_pointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then				
+				if ( ( g_PointIsInvalid[ v.case ] and g_PointIsInvalid[ v.case ][ v.index ] and g_PointIsInvalid[ v.case ][ v.index ] < 10 )
+						or not g_PointIsInvalid[ v.case ] or ( g_PointIsInvalid[ v.case ] and not g_PointIsInvalid[ v.case ][ v.index ] ) ) and t_Next then				
 
 					for k2, v2 in pairs( pPoint.connection ) do
 
@@ -598,9 +607,17 @@ if SERVER then
 	function AddMetalEntity( _ent )
 
 		local _stringp = "_".._ent:EntIndex()
+		local _amount = _ent:GetModelRadius() * 4
 		
-		g_MetalPoints[ _stringp ] = { ent = _ent, amount = _ent:GetModelRadius() * 4 }
+		g_MetalPoints[ _stringp ] = { ent = _ent, amount = _amount }
 		g_MetalPointsAsigned[ _stringp ] = true
+
+		net.Start( "add_metal_points" )
+		
+			net.WriteString( _stringp )
+			net.WriteTable( { ent = _ent, amount = _amount, used = false } )
+			
+		net.Broadcast()
 		
 	end
 	
@@ -816,12 +833,34 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 
 	for k, v in pairs( g_MetalPoints ) do
 	
-		render.SetMaterial( Material( "decals/antlion/shot5" ) )
+		render.SetMaterial( Material( "rust/rusty_spot" ) )
 
-		local t_Radius = ( 1 - math.exp( -( ( 1 - v.amount / 100 ) * 10 ) / 2 ) ) * 50
+		local t_Radius = ( 1 - math.exp( -( ( 1 - v.amount / 100 ) * 10 ) / 2 ) ) * 20
+
+		if not v.ent then
 		
-		render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), t_Radius * 123 ) 
-		//render.DrawBox( v.pos, v.angle, -Vector( 1, 1, 1 ), Vector( 1, 1, 1 ), Color( 0, 0, 255 ), false ) 
+			render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), 0 ) 
+			
+		else
+		
+			if v.ent:IsValid() then
+			
+				if not v.ent.model then
+				
+					local ent = ents.CreateClientProp()
+					ent:SetModel( v.ent:GetModel() )
+					v.ent.model = ent
+					
+				end
+				
+				v.ent.model:SetPos( v.ent:LocalToWorld( Vector( 0, 0, 0 ) ) )
+				v.ent.model:SetAngles( v.ent:LocalToWorldAngles( Angle( 0, 0, 0 ) ) )
+				v.ent.model:SetMaterial( Material( "rust/rusty_paint" ) )
+				v.ent.model:SetParent( v.ent )
+				v.ent.model:DrawModel()
+			end
+			
+		end
 		
 	end
 

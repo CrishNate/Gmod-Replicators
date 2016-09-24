@@ -103,13 +103,6 @@ REPLICATOR.ReplicatorInitialize = function( self )
 			self.rReplicatorNPCTarget = target
 			target.rParentReplicator = self
 		end
-		
-		
-		local ef = EffectData()
-
-		ef:SetOrigin( self:GetPos() )
-		ef:SetNormal( -self:GetUp() )
-		util.Effect( "acid_spit", ef )
 
 	end // SERVER
 
