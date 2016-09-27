@@ -316,8 +316,16 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 							if mPointInfo and g_MetalPoints[ t_TargetMetalId ] then
 							
 								self:EmitSound( "acid/acid_spit.wav", 60, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
-								if mPointInfo.ent then g_MetalPoints[ t_TargetMetalId ].amount = t_m_TargetMetalAmount - m_Amount
-								elseif mPointInfo.pos then UpdateMetalPoint( t_TargetMetalId, t_m_TargetMetalAmount - m_Amount ) end
+								
+								if mPointInfo.ent then
+									
+									UpdateMetalEntity( g_MetalPoints[ t_TargetMetalId ].ent, t_m_TargetMetalAmount - m_Amount )
+									
+								elseif mPointInfo.pos then
+								
+									UpdateMetalPoint( t_TargetMetalId, t_m_TargetMetalAmount - m_Amount )
+									
+								end
 								
 							end
 							
@@ -617,9 +625,9 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 							
 						end
 						
-						timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ) / 10, 0, function()
+						timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ), 0, function()
 						
-							if self:IsValid() then // BLOCKED
+							if self:IsValid() then
 							
 								if self.rMetalAmount >= 1 then
 								
@@ -700,7 +708,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 	// ==================================================== Scanner ===============================================
 	REPLICATOR.ReplicatorScanningResources( self )
 	
-	local m_Pos, m_PosString = convertToGrid( h_Ground.HitPos, 30 )
+	local m_Pos, m_PosString = REPLICATOR.ConvertToGrid( h_Ground.HitPos, 30 )
 
 	if h_Ground.MatType == MAT_METAL then
 		

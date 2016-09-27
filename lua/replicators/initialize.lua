@@ -56,19 +56,19 @@ REPLICATOR.ReplicatorInitialize = function( self )
 			self.rMode = -1
 			self.rResearch = false
 			
-			timer.Simple( CNRPlaySequence( self, "assembling" ), function()
+			timer.Simple( REPLICATOR.PlaySequence( self, "assembling" ), function()
 
 				self.rMode = 0
 				self.rResearch = true
 			
 				if self:IsValid() then
 					
-					CNRPlaySequence( self, "stand" )
+					REPLICATOR.PlaySequence( self, "stand" )
 					
 					if IsValid( m_Phys ) then m_Phys:Wake() end
 				end
 			end )
-		else CNRPlaySequence( self, "stand" ) end
+		else REPLICATOR.PlaySequence( self, "stand" ) end
 
 		
 		self.rPrevPointId = { case = "", index = 0 }

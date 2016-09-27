@@ -7,13 +7,17 @@
 local m_ID = 0
 local m_DebugLink = { }
 
-hook.Add( "Initialize", "replicator_keron_initialize", function( )
+hook.Add( "Initialize", "CNR_RKeronInitialize", function( )
 
 	if SERVER then
 	
 		util.AddNetworkString( "draw_keron_network" )
-		util.AddNetworkString( "add_metal_points" )
-		util.AddNetworkString( "update_metal_points" )
+
+		util.AddNetworkString( "CNR_UpdateMetalPoint" )
+		util.AddNetworkString( "CNR_UpdateMetalEntity" )
+
+		util.AddNetworkString( "CNR_AddMetalPoint" )
+		util.AddNetworkString( "CNR_AddMetalEntity" )
 		
 		util.AddNetworkString( "debug_rDrawPoint" )
 		util.AddNetworkString( "debug_rDrawpPoint" )
@@ -36,16 +40,7 @@ hook.Add( "Initialize", "replicator_keron_initialize", function( )
 end )
 
 
-concommand.Add( "tr_replicator_limit", function( ply, cmd, args )
-
-	print( agrs )
-	g_replicator_limit = agrs
-	
-end )
-
-//local endPOS
-
-hook.Add( "EntityTakeDamage", "ReplicatorGetDamaged", function( target, dmginfo )
+hook.Add( "EntityTakeDamage", "CNR_RGetDamaged", function( target, dmginfo )
 
 	if target:GetClass() == "npc_bullseye" and target.rReplicatorsNPCTarget then
 	
@@ -139,20 +134,6 @@ hook.Add( "PostCleanupMap", "replicator_keron_clear", function( )
 
 end )
 
-//
-// Converting coordinate to grid
-//
-function ConvertToGrid( pos, size )
-
-	local t_Pos = pos / size
-	t_Pos = Vector( math.Round( t_Pos.x, 0 ), math.Round( t_Pos.y, 0 ), math.Round( t_Pos.z, 0 ) ) * size
-	
-	local t_StringPos = ( t_Pos.x ).."_"..( t_Pos.y ).."_"..( t_Pos.z )
-	
-	return t_Pos, t_StringPos
-	
-end
-
 if SERVER then
 	
 	//
@@ -171,7 +152,7 @@ if SERVER then
 		for y = -1 * rad, 1 * rad do
 		for z = -1 * rad, 1 * rad do
 
-			local coord, sCoord = convertToGrid( pos + Vector( x, y, z ) * 100, 100 )
+			local coord, sCoord = REPLICATOR.ConvertToGrid( pos + Vector( x, y, z ) * 100, 100 )
 
 			if g_PathPoints[ sCoord ] then table.Add( t_pathPoints, g_PathPoints[ sCoord ] ) end
 			
@@ -544,41 +525,8 @@ if SERVER then
 		
 		return {}, 0
 	end
-	
-	//
-	// Adding metal spot
-	//
-	function UpdateMetalPoint( _stringp, _amount )
-	
-		g_MetalPoints[ _stringp ].amount = _amount
 
-		net.Start( "update_metal_points" ) net.WriteString( _stringp ) net.WriteFloat( _amount ) net.Broadcast()
-		
-	end
 	
-	//
-	// Adding metal entity
-	//
-	function AddMetalEntity( _ent )
-
-		local _amount = _ent:GetModelRadius() * 4
-		
-		g_MetalPoints[ _ent ] = { ent = _ent, amount = _amount }
-		g_MetalPointsAsigned[ _ent ] = true
-
-		net.Start( "add_metal_points" )
-		
-			net.WriteEntity( _ent )
-			net.WriteTable( { ent = _ent, amount = _amount, used = false } )
-			
-		net.Broadcast()
-		
-	end
-	
-	
-	//
-	// Adding metal point
-	//
 	function AddMetalPoint( _stringp, _pos, _normal, _amount )
 		
 		g_MetalPoints[ _stringp ] = { pos = _pos, normal = _normal, amount = _amount, used = false }
@@ -586,18 +534,43 @@ if SERVER then
 		
 		local t_tracer = REPLICATOR.TraceQuick( _pos, -_normal * 20, g_ReplicatorNoCollideGroupWith )
 				
-		net.Start( "add_metal_points" )
-		
+		net.Start( "CNR_AddMetalPoint" )
 			net.WriteString( _stringp )
 			net.WriteTable( { pos = t_tracer.HitPos, normal = t_tracer.HitNormal, amount = _amount, used = false } )
-			
+		net.Broadcast()
+		
+	end
+
+	function UpdateMetalPoint( _stringp, _amount )
+	
+		g_MetalPoints[ _stringp ].amount = _amount
+
+		net.Start( "CNR_UpdateMetalPoint" ) net.WriteString( _stringp ) net.WriteFloat( _amount ) net.Broadcast()
+		
+	end
+		
+	function AddMetalEntity( _ent )
+
+		local _amount = _ent:GetModelRadius() * 4
+		
+		g_MetalPoints[ _ent ] = { ent = _ent, amount = _amount }
+		g_MetalPointsAsigned[ _ent ] = true
+
+		net.Start( "CNR_AddMetalEntity" )
+			net.WriteEntity( _ent )
+			net.WriteTable( { ent = _ent, amount = _amount, used = false } )
 		net.Broadcast()
 		
 	end
 	
-	//
-	// Adding path point
-	//
+	function UpdateMetalEntity( _ent, _amount )
+	
+		g_MetalPoints[ _ent ].amount = _amount
+
+		net.Start( "CNR_UpdateMetalEntity" ) net.WriteEntity( _ent ) net.WriteFloat( _amount ) net.Broadcast()
+		
+	end
+		
 	function AddPathPoint( _pos, _connection, _ent )
 	
 		local merge = false
@@ -610,7 +583,7 @@ if SERVER then
 		for y = -1, 1 do
 		for z = -1, 1 do
 
-			local coord, sCoord = convertToGrid( _pos + Vector( x, y, z ) * 80, 100 )
+			local coord, sCoord = REPLICATOR.ConvertToGrid( _pos + Vector( x, y, z ) * 80, 100 )
 			
 			if g_PathPoints[ sCoord ] then table.Add( t_pathPoints, g_PathPoints[ sCoord ] ) end
 			
@@ -669,7 +642,7 @@ if SERVER then
 		
 		if not merge then
 			
-			local coord, sCoord = convertToGrid( _pos, 100 )
+			local coord, sCoord = REPLICATOR.ConvertToGrid( _pos, 100 )
 
 			if g_PathPoints[ sCoord ] then
 			
@@ -742,13 +715,14 @@ if CLIENT then
 end // CLIENT
 
 hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
-	//print( "Tick: "..( 1/FrameTime() ) )
+	
+	net.Receive( "CNR_UpdateMetalPoint", function() g_MetalPoints[ net.ReadString() ].amount = net.ReadFloat() end )
+	net.Receive( "CNR_UpdateMetalEntity", function() g_MetalPoints[ net.ReadEntity() ].amount = net.ReadFloat() end )
+	
+	net.Receive( "CNR_AddMetalPoint", function() g_MetalPoints[ net.ReadString() ] = net.ReadTable() end )
+	net.Receive( "CNR_AddMetalEntity", function() g_MetalPoints[ net.ReadEntity() ] = net.ReadTable() end )
 
 	net.Receive( "draw_keron_network", function() g_PathPoints = net.ReadTable() end )
-	
-	net.Receive( "update_metal_points", function() g_MetalPoints[ net.ReadString() ].amount = net.ReadFloat() end )
-	net.Receive( "add_metal_points", function() g_MetalPoints[ net.ReadEntity() ] = net.ReadTable() end )
-
 	for k, v in pairs( g_PathPoints ) do
 	
 		render.SetMaterial( Material( "models/wireframe" ) )
@@ -768,9 +742,7 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 					
 					render.DrawLine( v2.pos + vec:Right() / 2, p.pos + vec:Right() / 2, Color( 255, 255, 255, 50 ), false )
 					
-				end
-				//else table.remove( g_PathPoints[ v2.case ].connection, k2 ) end
-				
+				end				
 			end
 		end
 	end
@@ -780,22 +752,18 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 		render.SetColorMaterial()
 		render.SetBlend( 1 )
 		
-		render.DrawBox( v.pos, Angle( ), -Vector( 10, 10, 0 ), Vector( 10, 10, 0 ), Color( 255, 255, 255, 10 ), true ) 
+		//render.DrawBox( v.pos, Angle( ), -Vector( 10, 10, 0 ), Vector( 10, 10, 0 ), Color( 255, 255, 255, 10 ), true ) 
 		
 	end
-
-	local index = 0
-
-	for k, v in pairs( g_MetalPoints ) do
 	
-		index = index + 1
+	for k, v in pairs( g_MetalPoints ) do
 
 		local t_Radius = ( 1 - math.exp( -( ( 1 - v.amount / 100 ) * 10 ) / 2 ) ) * 20
 
 		if not v.ent then
 		
 			render.SetMaterial( Material( "rust/rusty_spot" ) )
-			render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), index * 52 ) 
+			render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), t_Radius * 128 ) 
 			
 		else
 		

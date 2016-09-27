@@ -181,7 +181,7 @@ REPLICATOR.TraceHoles = function( startpos, endpos, divPerUnit, dir, hullrad )
 	
 	for i = 0, count do
 	
-		if not CNRTraceHullQuick( startpos + direction * divPerUnit * i, dir, hullrad, g_ReplicatorNoCollideGroupWith ).Hit then
+		if not REPLICATOR.TraceHullQuick( startpos + direction * divPerUnit * i, dir, hullrad, g_ReplicatorNoCollideGroupWith ).Hit then
 		
 			return false
 			

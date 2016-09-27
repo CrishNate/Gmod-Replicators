@@ -19,6 +19,27 @@ include( "replicators/walk.lua" )
 
 list.Add( "OverrideMaterials", "rust/rusty_paint" )
 
+
+concommand.Add( "tr_replicator_limit", function( ply, cmd, args )
+
+	print( ply, cmd, args )
+	PrintTable( args )
+	//g_replicator_limit = agrs
+	
+end )
+
+
+REPLICATOR.ConvertToGrid = function( pos, size )
+
+	local t_Pos = pos / size
+	t_Pos = Vector( math.Round( t_Pos.x, 0 ), math.Round( t_Pos.y, 0 ), math.Round( t_Pos.z, 0 ) ) * size
+	
+	local t_StringPos = ( t_Pos.x ).."_"..( t_Pos.y ).."_"..( t_Pos.z )
+	
+	return t_Pos, t_StringPos
+	
+end
+
 REPLICATOR.DissolveEntity = function( ent )
 
 	 ent:SetKeyValue( "targetname", "ANIHILATION" )
@@ -98,7 +119,7 @@ REPLICATOR.ReplicatorDarkPointAssig = function( self )
 	local h_HitNormal = h_Ground.HitNormal
 	h_HitNormal = Vector( math.Round( h_HitNormal.x ), math.Round( h_HitNormal.y ), math.Round( h_HitNormal.z ) )
 
-	local h_Pos, h_StringPos = convertToGrid( self:GetPos(), 100 )
+	local h_Pos, h_StringPos = REPLICATOR.ConvertToGrid( self:GetPos(), 100 )
 	
 	local h_Radius = Vector( 30, 30, 30 )
 	

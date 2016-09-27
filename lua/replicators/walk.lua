@@ -36,11 +36,11 @@ REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_Groun
 					
 					if replicatorType == 1 then
 					
-						m_Forward, m_ForwardDist = CNRTraceHullQuick( self:GetPos() + self:GetUp() * 2, self:GetForward() * 20, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
+						m_Forward, m_ForwardDist = REPLICATOR.TraceHullQuick( self:GetPos() + self:GetUp() * 2, self:GetForward() * 20, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
 
 					elseif replicatorType == 2 then
 					
-						m_Forward, m_ForwardDist = CNRTraceHullQuick( self:GetPos() + self:GetUp() * 4, self:GetForward() * 20, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
+						m_Forward, m_ForwardDist = REPLICATOR.TraceHullQuick( self:GetPos() + self:GetUp() * 4, self:GetForward() * 20, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
 						
 					end
 
@@ -60,11 +60,11 @@ REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_Groun
 					else
 						if replicatorType == 1 then
 						
-							h_ForwardDown, h_ForwardDownDist = CNRTraceHullQuick( self:GetPos() + self:GetForward() * 10, -self:GetUp() * 10, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
+							h_ForwardDown, h_ForwardDownDist = REPLICATOR.TraceHullQuick( self:GetPos() + self:GetForward() * 10, -self:GetUp() * 10, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
 								
 						elseif replicatorType == 2 then
 						
-							h_ForwardDown, h_ForwardDownDist = CNRTraceHullQuick( self:GetPos() + self:GetForward() * 20, -self:GetUp() * 10, Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
+							h_ForwardDown, h_ForwardDownDist = REPLICATOR.TraceHullQuick( self:GetPos() + self:GetForward() * 20, -self:GetUp() * 10, Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 							
 						end
 						
@@ -142,11 +142,11 @@ REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_Groun
 				
 				if replicatorType == 1 then
 				
-					ceiling = CNRTraceHullQuick( self:GetPos(), self:GetUp() * 15, Vector( 15, 15, 15 ), g_ReplicatorNoCollideGroupWith )
+					ceiling = REPLICATOR.TraceHullQuick( self:GetPos(), self:GetUp() * 15, Vector( 15, 15, 15 ), g_ReplicatorNoCollideGroupWith )
 						
 				elseif replicatorType == 2 then
 				
-					ceiling = CNRTraceHullQuick( self:GetPos(), self:GetUp() * 15, Vector( 20, 20, 20 ), g_ReplicatorNoCollideGroupWith )
+					ceiling = REPLICATOR.TraceHullQuick( self:GetPos(), self:GetUp() * 15, Vector( 20, 20, 20 ), g_ReplicatorNoCollideGroupWith )
 					
 				end
 
@@ -197,7 +197,7 @@ REPLICATOR.ReplicatorWalkingAnimation = function( replicatorType, self, h_Move, 
 			timer.Remove( h_NameWalk )
 			timer.Remove( h_NameRun )
 			
-			if not h_StandAnimReset then CNRPlaySequence( self, "stand" ) end
+			if not h_StandAnimReset then REPLICATOR.PlaySequence( self, "stand" ) end
 			
 		end
 	end
@@ -208,7 +208,7 @@ REPLICATOR.ReplicatorWalkingAnimation = function( replicatorType, self, h_Move, 
 		h_Phys:Wake()
 		timer.Remove( h_NameRun )
 		
-		timer.Create( h_NameWalk, CNRPlaySequence( self, "walk" ) / 2, 0, function()
+		timer.Create( h_NameWalk, REPLICATOR.PlaySequence( self, "walk" ) / 2, 0, function()
 		
 			if self:IsValid() then self:EmitSound( "replicators/replicatorstep" .. math.random( 1, 4 ) .. ".wav", 65, 100 + math.Rand( -25, 25 ), 1, CHAN_AUTO ) end
 			
@@ -222,7 +222,7 @@ REPLICATOR.ReplicatorWalkingAnimation = function( replicatorType, self, h_Move, 
 		h_Phys:Wake()
 		timer.Remove( h_NameWalk )
 		
-		timer.Create( h_NameRun, CNRPlaySequence( self, "run" ) / 2, 0, function()
+		timer.Create( h_NameRun, REPLICATOR.PlaySequence( self, "run" ) / 2, 0, function()
 		
 			if self:IsValid() then self:EmitSound( "replicators/replicatorstep" .. math.random( 1, 4 ) .. ".wav", 65, 100 + math.Rand( -25, 25 ), 1, CHAN_AUTO ) end
 			
