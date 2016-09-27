@@ -103,7 +103,7 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 					
 					self.rMoveTo = m_MToPos
 					
-				elseif h_MoveStep > 1 and not CNRTraceLine( m_MToPos, m_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then
+				elseif h_MoveStep > 1 and not REPLICATOR.TraceLine( m_MToPos, m_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then
 				
 					self.rMoveStep = h_MoveStep - 1
 
@@ -142,7 +142,7 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 				
 					self.rMoveTo = m_MToPos
 					
-				elseif h_MoveStep < table.Count( m_MovePath ) and not CNRTraceLine( m_MToPos, m_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then
+				elseif h_MoveStep < table.Count( m_MovePath ) and not REPLICATOR.TraceLine( m_MToPos, m_DistTo, g_ReplicatorNoCollideGroupWith ).Hit then
 				
 					self.rMoveStep = h_MoveStep + 1
 					
@@ -197,7 +197,7 @@ REPLICATOR.CreatingPath = function( self, h_Ground )
 
 				else
 				
-					local trace, trDist = CNRTraceLine( self:GetPos(), h_Point.pos, g_ReplicatorNoCollideGroupWith )
+					local trace, trDist = REPLICATOR.TraceLine( self:GetPos(), h_Point.pos, g_ReplicatorNoCollideGroupWith )
 
 					if trace.Hit and trDist > 0 then
 					

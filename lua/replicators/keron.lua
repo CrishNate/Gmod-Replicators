@@ -35,19 +35,13 @@ hook.Add( "Initialize", "replicator_keron_initialize", function( )
 	
 end )
 
-/*
-concommand.Add( "tr_replicator_", function( ply )
-	local swep = ply:GetActiveWeapon()
-	if( ply:GetVar( "bad_time" ) != NULL && ply:GetVar( "bad_time_mode" ) != NULL && swep:IsValid() ) then
-		
-		if( ply:GetVar( "bad_time" ) == 100 && swep:GetClass() == "weapon_undertale_sans" ) then
-			if( ply:GetVar( "bad_time_mode" ) == 0 ) then
-				ply:SetVar( "bad_time_mode", CurTime() )
-			end
-		end
-	end
+
+concommand.Add( "tr_replicator_limit", function( ply, cmd, args )
+
+	print( agrs )
+	g_replicator_limit = agrs
+	
 end )
-*/
 
 //local endPOS
 
@@ -148,7 +142,7 @@ end )
 //
 // Converting coordinate to grid
 //
-function convertToGrid( pos, size )
+function ConvertToGrid( pos, size )
 
 	local t_Pos = pos / size
 	t_Pos = Vector( math.Round( t_Pos.x, 0 ), math.Round( t_Pos.y, 0 ), math.Round( t_Pos.z, 0 ) ) * size
@@ -156,47 +150,10 @@ function convertToGrid( pos, size )
 	local t_StringPos = ( t_Pos.x ).."_"..( t_Pos.y ).."_"..( t_Pos.z )
 	
 	return t_Pos, t_StringPos
+	
 end
 
 if SERVER then
-
-	function CNRDissolveEntity( ent )
-	
-		 ent:SetKeyValue( "targetname", "ANIHILATION" )
-		 g_Replicator_entDissolver:Fire( "Dissolve", "ANIHILATION", 0 )
-		 
-	end
-
-	function CNRPlaySequence( self, seq )
-	
-		local sequence = self:LookupSequence( seq )
-		self:ResetSequence( sequence )
-
-		self:SetPlaybackRate( 1.0 )
-		self:SetSequence( sequence )
-		
-		return self:SequenceDuration( sequence )
-	end
-	
-	function CNRTestForFloor( startpos, endpos, divPerUnit, dir, hullrad )
-	
-		local count = math.Round( startpos:Distance( endpos ) / divPerUnit )
-		
-		local direction = endpos - startpos
-		direction:Normalize()
-		
-		for i = 0, count do
-		
-			if not CNRTraceHullQuick( startpos + direction * divPerUnit * i, dir, hullrad, g_ReplicatorNoCollideGroupWith ).Hit then
-			
-				return false
-				
-			end
-			
-		end
-		
-		return true
-	end
 	
 	//
 	// Returning closest point from Replicators Net Work to pos
@@ -224,7 +181,7 @@ if SERVER then
 		
 		local t_First = true
 		for k, v in pairs( t_pathPoints ) do
-			local tracer = CNRTraceLine( v.pos, pos, g_ReplicatorNoCollideGroupWith )
+			local tracer = REPLICATOR.TraceLine( v.pos, pos, g_ReplicatorNoCollideGroupWith )
 			
 			if not tracer.Hit then
 			
@@ -281,7 +238,7 @@ if SERVER then
 				if ( pPoint.ent and pPoint.ent:IsValid() and pPoint.ent:GetPos():Distance( pPoint.pos ) < pPoint.ent:GetModelRadius() * 1.5 ) or not pPoint.ent then t_Next = true
 				elseif pPoint.ent then
 				
-					local trace = CNRTraceHullQuick( 
+					local trace = REPLICATOR.TraceHullQuick( 
 						pPoint.pos, Vector(),
 						Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 						
@@ -351,7 +308,7 @@ if SERVER then
 				if ( pPoint.ent and pPoint.ent:IsValid() and pPoint.ent:GetPos():Distance( pPoint.pos ) < pPoint.ent:GetModelRadius() * 1.5 ) or not pPoint.ent then t_Next = true
 				elseif pPoint.ent then
 				
-					local trace = CNRTraceHullQuick( 
+					local trace = REPLICATOR.TraceHullQuick( 
 						pPoint.pos, Vector(),
 						Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 						
@@ -386,8 +343,8 @@ if SERVER then
 							for k3, v3 in pairs( entTable ) do
 							
 								if v3:IsValid() and t_v2pos:Distance( v3:GetPos() ) < 500
-									and not CNRTraceLine( t_v2pos, v3:GetPos(), g_ReplicatorNoCollideGroupWith ).Hit 
-										and CNRTestForFloor( t_v2pos, v3:GetPos(), 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
+									and not REPLICATOR.TraceLine( t_v2pos, v3:GetPos(), g_ReplicatorNoCollideGroupWith ).Hit 
+										and REPLICATOR.TraceHoles( t_v2pos, v3:GetPos(), 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 									
 									return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3:GetPos() } ), v3, k3
 
@@ -434,7 +391,7 @@ if SERVER then
 				if ( pPoint.ent and pPoint.ent:IsValid() and pPoint.ent:GetPos():Distance( pPoint.pos ) < pPoint.ent:GetModelRadius() * 1.5 ) or not pPoint.ent then t_Next = true
 				elseif pPoint.ent then
 				
-					local trace = CNRTraceHullQuick( 
+					local trace = REPLICATOR.TraceHullQuick( 
 						pPoint.pos, Vector(),
 						Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 						
@@ -469,8 +426,8 @@ if SERVER then
 							for k3, v3 in pairs( g_DarkPoints ) do
 								
 								if not v3.used and v2pos:Distance( v3.pos ) < 500
-									and not CNRTraceLine( v2pos, v3.pos, g_ReplicatorNoCollideGroupWith ).Hit 
-										and CNRTestForFloor( v2pos, v3.pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
+									and not REPLICATOR.TraceLine( v2pos, v3.pos, g_ReplicatorNoCollideGroupWith ).Hit 
+										and REPLICATOR.TraceHoles( v2pos, v3.pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 									
 									return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3.pos } ), k3
 
@@ -514,7 +471,7 @@ if SERVER then
 				if ( pPoint.ent and pPoint.ent:IsValid() and pPoint.ent:GetPos():Distance( pPoint.pos ) < pPoint.ent:GetModelRadius() * 1.5 ) or not pPoint.ent then t_Next = true
 				elseif pPoint.ent then
 				
-					local trace = CNRTraceHullQuick( 
+					local trace = REPLICATOR.TraceHullQuick( 
 						pPoint.pos, Vector(),
 						Vector( 10, 10, 10 ), g_ReplicatorNoCollideGroupWith )
 						
@@ -555,8 +512,8 @@ if SERVER then
 										local v3pos = v3.ent:WorldSpaceCenter()
 												
 										if v2pos:Distance( v3pos ) < 500 
-											and not CNRTraceLine( v2pos, v3pos, g_ReplicatorNoCollideGroupWith, { v3.ent } ).Hit
-												and CNRTestForFloor( v2pos, v3pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
+											and not REPLICATOR.TraceLine( v2pos, v3pos, g_ReplicatorNoCollideGroupWith, { v3.ent } ).Hit
+												and REPLICATOR.TraceHoles( v2pos, v3pos, 50, Vector( 0, 0, -25 ), Vector( 5, 5, 5 ) ) then
 											
 											return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
 											
@@ -568,7 +525,7 @@ if SERVER then
 									local v3pos = v3.pos
 									
 									if not v3.used and v2pos:Distance( v3pos ) < 500
-										and not CNRTraceLine( v3pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit then
+										and not REPLICATOR.TraceLine( v3pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit then
 									
 										return table.Add( table.Reverse( t_LinksHistory[ v2.case ][ v2.index ] ), { v3pos } ), k3
 										
@@ -582,11 +539,9 @@ if SERVER then
 			else MsgC( Color( 255, 0, 0 ), "ERROR LNK", "\n" ) end
 
 			t_LinksHistory[ v.case ][ v.index ] = { }
-
-			//if k > 100 then print( "BREAK" ) break end
+			
 		end
 		
-		//print( "DOESNT FOUNDED METAL")
 		return {}, 0
 	end
 	
@@ -606,15 +561,14 @@ if SERVER then
 	//
 	function AddMetalEntity( _ent )
 
-		local _stringp = "_".._ent:EntIndex()
 		local _amount = _ent:GetModelRadius() * 4
 		
-		g_MetalPoints[ _stringp ] = { ent = _ent, amount = _amount }
-		g_MetalPointsAsigned[ _stringp ] = true
+		g_MetalPoints[ _ent ] = { ent = _ent, amount = _amount }
+		g_MetalPointsAsigned[ _ent ] = true
 
 		net.Start( "add_metal_points" )
 		
-			net.WriteString( _stringp )
+			net.WriteEntity( _ent )
 			net.WriteTable( { ent = _ent, amount = _amount, used = false } )
 			
 		net.Broadcast()
@@ -622,12 +576,15 @@ if SERVER then
 	end
 	
 	
+	//
+	// Adding metal point
+	//
 	function AddMetalPoint( _stringp, _pos, _normal, _amount )
 		
 		g_MetalPoints[ _stringp ] = { pos = _pos, normal = _normal, amount = _amount, used = false }
 		g_MetalPointsAsigned[ _stringp ] = true
 		
-		local t_tracer = CNRTraceQuick( _pos, -_normal * 20, g_ReplicatorNoCollideGroupWith )
+		local t_tracer = REPLICATOR.TraceQuick( _pos, -_normal * 20, g_ReplicatorNoCollideGroupWith )
 				
 		net.Start( "add_metal_points" )
 		
@@ -669,11 +626,11 @@ if SERVER then
 				
 					local v2pos = g_PathPoints[ v2.case ][ v2.index ].pos
 					
-					//print( v.case, v.index, v2.case, v2.index, v.pos:Distance( _pos ), not ( v.case == v2.case and v.index == v2.index ), ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, g_ReplicatorNoCollideGroupWith ).Hit ) )
+					//print( v.case, v.index, v2.case, v2.index, v.pos:Distance( _pos ), not ( v.case == v2.case and v.index == v2.index ), ( v.pos:Distance( _pos ) < 10 and not REPLICATOR.TraceLine( v.pos, _pos, g_ReplicatorNoCollideGroupWith ).Hit ) )
 					
 					if not ( v.case == v2.case and v.index == v2.index ) 
-						and ( ( v.pos:Distance( _pos ) < 50 and not CNRTraceLine( v.pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit ) 
-							or ( v.pos:Distance( _pos ) < 10 and not CNRTraceLine( v.pos, _pos, g_ReplicatorNoCollideGroupWith ).Hit ) ) then
+						and ( ( v.pos:Distance( _pos ) < 50 and not REPLICATOR.TraceLine( v.pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit ) 
+							or ( v.pos:Distance( _pos ) < 10 and not REPLICATOR.TraceLine( v.pos, _pos, g_ReplicatorNoCollideGroupWith ).Hit ) ) then
 					
 						if not g_PathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] then
 						
@@ -701,7 +658,7 @@ if SERVER then
 			
 			if r_Case != "" and r_Index > 0 then
 				
-				if g_PathPoints[ r_Case ][ r_Index ].pos:Distance( _pos ) < 50 and not CNRTraceLine( _pos, g_PathPoints[ r_Case ][ r_Index ].pos, g_ReplicatorNoCollideGroupWith ).Hit then
+				if g_PathPoints[ r_Case ][ r_Index ].pos:Distance( _pos ) < 50 and not REPLICATOR.TraceLine( _pos, g_PathPoints[ r_Case ][ r_Index ].pos, g_ReplicatorNoCollideGroupWith ).Hit then
 					
 					merge = true
 					returnID = { case = r_Case, index = r_Index }
@@ -732,7 +689,7 @@ if SERVER then
 			
 			for k, v in pairs( _connection ) do
 			
-				//local result = CNRTraceLine( _pos, g_PathPoints[ v.case ][ v.index ].pos, g_ReplicatorNoCollideGroupWith )
+				//local result = REPLICATOR.TraceLine( _pos, g_PathPoints[ v.case ][ v.index ].pos, g_ReplicatorNoCollideGroupWith )
 
 				//if not result.Hit then
 
@@ -784,21 +741,18 @@ if CLIENT then
 	
 end // CLIENT
 
-hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
+hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 	//print( "Tick: "..( 1/FrameTime() ) )
 
 	net.Receive( "draw_keron_network", function() g_PathPoints = net.ReadTable() end )
 	
 	net.Receive( "update_metal_points", function() g_MetalPoints[ net.ReadString() ].amount = net.ReadFloat() end )
-	net.Receive( "add_metal_points", function() g_MetalPoints[ net.ReadString() ] = net.ReadTable() end )
+	net.Receive( "add_metal_points", function() g_MetalPoints[ net.ReadEntity() ] = net.ReadTable() end )
 
 	for k, v in pairs( g_PathPoints ) do
-		//local words = string.Explode( "_", k )
 	
 		render.SetMaterial( Material( "models/wireframe" ) )
 		
-		//render.DrawBox( Vector( tonumber( words[ 1 ], 10 ), tonumber( words[ 2 ], 10 ), tonumber( words[ 3 ], 10 ) ), Angle( ), -Vector( 1, 1, 1 ) * 50, Vector( 1, 1, 1 ) * 50, Color( 255, 255, 255 ), false ) 
-
 		for k2, v2 in pairs( v ) do
 
 			render.SetColorMaterial()
@@ -830,33 +784,37 @@ hook.Add( "PostDrawTranslucentRenderables", "DrawQuadEasyExample", function()
 		
 	end
 
+	local index = 0
 
 	for k, v in pairs( g_MetalPoints ) do
 	
-		render.SetMaterial( Material( "rust/rusty_spot" ) )
+		index = index + 1
 
 		local t_Radius = ( 1 - math.exp( -( ( 1 - v.amount / 100 ) * 10 ) / 2 ) ) * 20
 
 		if not v.ent then
 		
-			render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), 0 ) 
+			render.SetMaterial( Material( "rust/rusty_spot" ) )
+			render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), index * 52 ) 
 			
 		else
 		
 			if v.ent:IsValid() then
 			
+				render.SetMaterial( Material( "rust/rusty_paint" ) )
+			
 				if not v.ent.model then
 				
-					local ent = ents.CreateClientProp()
-					ent:SetModel( v.ent:GetModel() )
+					local ent = ClientsideModel( v.ent:GetModel(), RENDERGROUP_OPAQUE_BRUSH )
+					ent:SetNoDraw( true )
+					ent:SetMaterial( Material( "models/shiny" ) )
 					v.ent.model = ent
 					
 				end
 				
 				v.ent.model:SetPos( v.ent:LocalToWorld( Vector( 0, 0, 0 ) ) )
 				v.ent.model:SetAngles( v.ent:LocalToWorldAngles( Angle( 0, 0, 0 ) ) )
-				v.ent.model:SetMaterial( Material( "rust/rusty_paint" ) )
-				v.ent.model:SetParent( v.ent )
+				v.ent.model:SetupBones()
 				v.ent.model:DrawModel()
 			end
 			

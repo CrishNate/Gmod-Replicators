@@ -4,7 +4,7 @@
 	
 ]]
 
-local g_ReplicatorNoCollideGroup = {
+local h_ReplicatorNoCollideGroup = {
 	"replicator_segment",
 	"replicator_queen",
 	"replicator_worker"
@@ -17,7 +17,7 @@ g_ReplicatorNoCollideGroupWith = {
 	"npc_bullseye"
 }
 
-function CNRTraceHull( startpos, endpos, rad, ignore, ignoreEnt )
+REPLICATOR.TraceHull = function( startpos, endpos, rad, ignore, ignoreEnt )
 
 	local tr = util.TraceHull( {
 		start = startpos,
@@ -57,7 +57,7 @@ function CNRTraceHull( startpos, endpos, rad, ignore, ignoreEnt )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-function CNRTraceHullQuick( startpos, dir, rad, ignore, ignoreEnt )
+REPLICATOR.TraceHullQuick = function( startpos, dir, rad, ignore, ignoreEnt )
 
 	local tr = util.TraceHull( {
 		start = startpos,
@@ -98,7 +98,7 @@ function CNRTraceHullQuick( startpos, dir, rad, ignore, ignoreEnt )
 	
 end
 
-function CNRTraceQuick( startpos, dir, ignore, ignoreEnt )
+REPLICATOR.TraceQuick = function( startpos, dir, ignore, ignoreEnt )
 
 	local tr = util.QuickTrace(
 		startpos, dir,
@@ -135,7 +135,7 @@ function CNRTraceQuick( startpos, dir, ignore, ignoreEnt )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-function CNRTraceLine( startpos, endpos, ignore, ignoreEnt )
+REPLICATOR.TraceLine = function( startpos, endpos, ignore, ignoreEnt )
 	local tr = util.TraceLine( {
 		start = startpos,
 		endpos = endpos,
@@ -172,14 +172,33 @@ function CNRTraceLine( startpos, endpos, ignore, ignoreEnt )
 	return tr, tr.HitPos:Distance( startpos )
 end
 
-hook.Add("ShouldCollide", "replicator_nocolide", function( ent1, ent2 )
-	//print( ent1, ent2 )
+REPLICATOR.TraceHoles = function( startpos, endpos, divPerUnit, dir, hullrad )
+
+	local count = math.Round( startpos:Distance( endpos ) / divPerUnit )
 	
-	for k, v in pairs( g_ReplicatorNoCollideGroup ) do
+	local direction = endpos - startpos
+	direction:Normalize()
+	
+	for i = 0, count do
+	
+		if not CNRTraceHullQuick( startpos + direction * divPerUnit * i, dir, hullrad, g_ReplicatorNoCollideGroupWith ).Hit then
+		
+			return false
+			
+		end
+		
+	end
+	
+	return true
+end
+
+hook.Add("ShouldCollide", "replicator_nocolide", function( ent1, ent2 )
+
+	for k, v in pairs( h_ReplicatorNoCollideGroup ) do
 		for k2, v2 in pairs( g_ReplicatorNoCollideGroupWith ) do
-			if ent1:GetClass() == v and ent2:GetClass() == v2 then
-				return false
-			end
+		
+			if ent1:GetClass() == v and ent2:GetClass() == v2 then return false end
+			
 		end
 	end
 	

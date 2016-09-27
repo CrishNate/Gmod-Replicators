@@ -19,6 +19,25 @@ include( "replicators/walk.lua" )
 
 list.Add( "OverrideMaterials", "rust/rusty_paint" )
 
+REPLICATOR.DissolveEntity = function( ent )
+
+	 ent:SetKeyValue( "targetname", "ANIHILATION" )
+	 g_Replicator_entDissolver:Fire( "Dissolve", "ANIHILATION", 0 )
+	 
+end
+
+REPLICATOR.PlaySequence = function( self, seq )
+
+	local sequence = self:LookupSequence( seq )
+	self:ResetSequence( sequence )
+
+	self:SetPlaybackRate( 1.0 )
+	self:SetSequence( sequence )
+	
+	return self:SequenceDuration( sequence )
+end
+
+
 REPLICATOR.ReplicatorOnTakeDamage = function( replicatorType, self, dmginfo )
 	
 	local h_Damage = dmginfo:GetDamage()
@@ -58,6 +77,7 @@ REPLICATOR.ReplicatorOnRemove = function( self )
 	timer.Remove( "rRotateBack"..self:EntIndex() )
 	timer.Remove( "rScanner"..self:EntIndex() )
 	timer.Remove( "rScannerDark"..self:EntIndex() )
+	timer.Remove( "rScannerAttacker"..self:EntIndex() )
 	timer.Remove( "rChangingDirection"..self:EntIndex() )
 	timer.Remove( "rEating"..self:EntIndex() )
 	timer.Remove( "rGiving"..self:EntIndex() )
@@ -68,7 +88,7 @@ end
 REPLICATOR.ReplicatorDarkPointAssig = function( self )
 
 	local h_Radius = Vector( 4, 4, 4 )
-	local h_Ground, h_GroundDist = CNRTraceHullQuick( 
+	local h_Ground, h_GroundDist = REPLICATOR.TraceHullQuick( 
 		self:GetPos(), -self:GetUp() * 20, 
 		h_Radius, g_ReplicatorNoCollideGroupWith )
 		
@@ -82,7 +102,7 @@ REPLICATOR.ReplicatorDarkPointAssig = function( self )
 	
 	local h_Radius = Vector( 30, 30, 30 )
 	
-	local h_Trace = CNRTraceHullQuick( 
+	local h_Trace = REPLICATOR.TraceHullQuick( 
 		self:GetPos() + Vector( 0, 0, h_Radius.z + 2 ), 
 		Vector( ),
 		h_Radius, g_ReplicatorNoCollideGroupWith )
@@ -103,7 +123,8 @@ REPLICATOR.ReplicatorScanningResources = function( self )
 			local m_Dir = VectorRand()
 			m_Dir:Normalize()
 			
-			m_Trace = CNRTraceQuick( 
+			m_Trace = REPLICATOR.
+			TraceQuick( 
 			v:WorldSpaceCenter(), m_Dir * v:GetModelRadius(),
 			g_ReplicatorNoCollideGroupWith )
 			

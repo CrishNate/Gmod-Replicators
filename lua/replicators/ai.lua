@@ -26,11 +26,11 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 	
 	if replicatorType == 1 then
 	
-		h_Ground, h_GroundDist = CNRTraceHullQuick( self:GetPos() + self:GetUp() * 15, -self:GetUp() * 30, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
+		h_Ground, h_GroundDist = REPLICATOR.TraceHullQuick( self:GetPos() + self:GetUp() * 15, -self:GetUp() * 30, Vector( 6, 6, 6 ), g_ReplicatorNoCollideGroupWith )
 			
 	elseif replicatorType == 2 then
 	
-		h_Ground, h_GroundDist = CNRTraceHullQuick( self:GetPos() + self:GetUp() * 10, -self:GetUp() * 40, Vector( 8, 8, 8 ), g_ReplicatorNoCollideGroupWith )
+		h_Ground, h_GroundDist = REPLICATOR.TraceHullQuick( self:GetPos() + self:GetUp() * 10, -self:GetUp() * 40, Vector( 8, 8, 8 ), g_ReplicatorNoCollideGroupWith )
 			
 	end
 	
@@ -139,7 +139,11 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 		
 		// ===================== Searching path to an enemy ======================
 		
+		local m_Name = "rScannerAttacker"..self:EntIndex()
+
 		if table.Count( g_Attackers ) > 0 and not timer.Exists( m_Name ) then
+			
+			timer.Create( m_Name, math.Rand( 5, 5 ), 1, function() end )
 			
 			local m_PathResult, t_TargetEnt, t_TargetId
 			
@@ -232,7 +236,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 				
 				if not timer.Exists( m_Name ) then
 				
-					timer.Create( m_Name, CNRPlaySequence( self, "eating" ), 0, function()
+					timer.Create( m_Name, REPLICATOR.PlaySequence( self, "eating" ), 0, function()
 					
 						if self:IsValid() then
 						
@@ -298,8 +302,8 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 									if mPointInfo.ent and mPointInfo.ent:IsValid() then
 									
 										constraint.RemoveAll( self )
-										CNRDissolveEntity( mPointInfo.ent )
-										g_MetalPointsAsigned[ "_"..mPointInfo.ent:EntIndex() ] = nil
+										REPLICATOR.DissolveEntity( mPointInfo.ent )
+										g_MetalPointsAsigned[ mPointInfo.ent ] = nil
 										
 									end
 									
@@ -422,7 +426,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 				
 				if not timer.Exists( m_Name ) then
 				
-					timer.Create( m_Name, CNRPlaySequence( self, "stand" ), 0, function()
+					timer.Create( m_Name, REPLICATOR.PlaySequence( self, "stand" ), 0, function()
 					
 						if self:IsValid() then
 						
@@ -467,7 +471,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 					table.Add( m_Filter, g_ReplicatorNoCollideGroupWith )
 					table.Add( m_Filter, { "player" } )
 					
-					local m_Trace, m_TraceDist = CNRTraceLine( self:GetPos(), m_Target:GetPos(), m_Filter )
+					local m_Trace, m_TraceDist = REPLICATOR.TraceLine( self:GetPos(), m_Target:GetPos(), m_Filter )
 					
 					if not m_Trace.Hit then
 					
@@ -487,7 +491,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 									self.rMove 			= false
 									h_StandAnimReset 	= true
 									
-									h_Phys:EnableCollisions( false )
+									self:SetCollisionGroup( COLLISION_GROUP_PASSABLE_DOOR )
 									timer.Remove( "rRefind"..self:EntIndex() )
 
 									if m_Target:IsPlayer() or m_Target:IsNPC() then self:SetParent( m_Target, 1 )
@@ -496,7 +500,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 								else
 								
 									self.rDisableMovining = true
-									h_Phys:SetVelocity( Vector( 0, 0, 300 ) + ( m_Target:GetPos() - h_Phys:GetPos() ) * 4 )
+									h_Phys:SetVelocity( ( m_Target:GetPos() + Vector( 0, 0, m_Target:OBBMaxs().z ) - h_Phys:GetPos() ) * 4 )
 									
 								end
 								
@@ -515,8 +519,8 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 				else
 				
 					self.rMode = 0
-					self.rResearch = true0
-				
+					self.rResearch = true
+					
 				end
 				
 			elseif h_ModeStatus == 1 then
@@ -537,7 +541,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 					timer.Remove( name )
 					
 					self:SetParent( NULL )
-					h_Phys:EnableCollisions( true )
+					self:SetCollisionGroup( COLLISION_GROUP_NONE )
 					
 					if m_Target then g_Attackers[ m_TargetCase ] = nil end
 					
@@ -547,7 +551,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 				
 					h_StandAnimReset = true
 
-					timer.Create( name, CNRPlaySequence( self, "eating" ), 0, function()
+					timer.Create( name, REPLICATOR.PlaySequence( self, "eating" ), 0, function()
 						
 						local m_Target = g_Attackers[ self.rTargetId ]
 						m_Target:TakeDamage( 25, self, self )
@@ -601,7 +605,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 					self.rMoveStep		= 0
 					self.rModeStatus	= 2
 					
-					timer.Simple( CNRPlaySequence( self, "crafting_start" ), function()
+					timer.Simple( REPLICATOR.PlaySequence( self, "crafting_start" ), function()
 					
 						// IF QUEEN
 						if replicatorType == 2 then
@@ -613,7 +617,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 							
 						end
 						
-						timer.Create( "rCrafting" .. self:EntIndex(), CNRPlaySequence( self, "crafting" ) / 10, 0, function()
+						timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ) / 10, 0, function()
 						
 							if self:IsValid() then // BLOCKED
 							
@@ -707,7 +711,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 		
 		elseif h_Ground.Entity:IsValid() then
 
-			self.rTargetMetalId = "_"..h_Ground.Entity:EntIndex()
+			self.rTargetMetalId = h_Ground.Entity
 			if not g_MetalPointsAsigned[ "_"..h_Ground.Entity:EntIndex() ] then AddMetalEntity( h_Ground.Entity ) end
 			
 		end
