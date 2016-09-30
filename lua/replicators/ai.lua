@@ -413,6 +413,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 						else self.rResearch = true end
 						
 					else self.rResearch = true end
+					
 				else MsgC( Color( 255, 0, 0 ), "ERROR queen doesn't found ( transport )\n" ) end
 				
 			elseif h_ModeStatus == 3 then
@@ -420,10 +421,18 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 				// ======================= Wait until Replicator reaches queen ======================
 				local m_QueenEnt = self.rTargetGueen
 				
-				if m_QueenEnt:IsValid() and m_QueenEnt:GetPos():Distance( self:GetPos() ) < 40 then
+				if m_QueenEnt:IsValid() then
 				
-					self.rModeStatus = 4
-					self.rMove = false
+					if m_QueenEnt:GetPos():Distance( self:GetPos() ) < 40 then
+					
+						self.rModeStatus = 4
+						self.rMove = false
+					
+					end
+					
+				else 
+					
+					self.rModeStatus = 2
 					
 				end
 				
@@ -661,25 +670,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 
 									g_DarkPoints[ m_DarkId ].used = false
 									
-									for i = 1, g_segments_to_assemble_replicator do
-	
-										local m_Ent = ents.Create( "replicator_segment" )
-										
-										if not IsValid( m_Ent ) then return end
-										m_Ent:SetPos( self:GetPos() + VectorRand() * 3 )
-										m_Ent:SetAngles( AngleRand() )
-										m_Ent:SetOwner( self:GetOwner() )
-										m_Ent:Spawn()
-										
-										m_Ent.rCraftingQueen = true
-										
-										local h_Phys = m_Ent:GetPhysicsObject()
-										h_Phys:Wake()
-										h_Phys:SetVelocity( VectorRand() * 100 )
-										
-									end
-									
-									self:Remove()
+									REPLICATOR.ReplicatorBreak( replicatorType, self, 10, self:WorldToLocal( Vector() ), true )
 									
 								end
 							end
@@ -698,11 +689,11 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 
 	if not h_Phys:IsGravityEnabled() and h_Phys:IsMotionEnabled() then h_Phys:SetVelocity( self:GetForward() * h_Phys:GetMass() / 2 ) end
 	
-	if self.rReplicatorNPCTarget and ( not self.rReplicatorNPCTarget:IsValid() or self.rReplicatorNPCTarget:IsValid() and self.rReplicatorNPCTarget:Health() <= 0 ) then
+	//if  then
 	
-		REPLICATOR.ReplicatorBreak( replicatorType, self, 0, Vector() )
+		//REPLICATOR.ReplicatorBreak( replicatorType, self, 0, self:LocalToWorld( Vector() ), false )
 		
-	end
+	//end
 		
 	local m_Pos, m_PosString = REPLICATOR.ConvertToGrid( h_Ground.HitPos, 30 )
 

@@ -37,21 +37,20 @@ hook.Add( "Initialize", "CNR_KeronInitialize", function( )
 		g_Replicator_entDissolver:SetKeyValue( "dissolvetype", "3" )
 		
 	end
-	
-	
 end )
 
 
 hook.Add( "EntityTakeDamage", "CNR_GetDamaged", function( target, dmginfo )
 
-	if target:GetClass() == "npc_bullseye" and target.rReplicatorsNPCTarget then
+	if target:GetClass() == "npc_bullseye" and target.rNPCTarget then
 	
-		local attacker = dmginfo:GetAttacker()
+		local h_Attacker = dmginfo:GetAttacker()
 		
-		if not g_Attackers[ "r"..attacker:EntIndex() ] and ( ( attacker:IsPlayer() and attacker:Alive() ) or attacker:IsNPC() ) then
+		if not g_Attackers[ "r"..h_Attacker:EntIndex() ] and ( ( h_Attacker:IsPlayer() and h_Attacker:Alive() ) or h_Attacker:IsNPC() ) then
 		
-			g_Attackers[ "r"..attacker:EntIndex() ] = attacker
+			g_Attackers[ "r"..h_Attacker:EntIndex() ] = h_Attacker
 			target.rParentReplicator.rResearch = true
+			target.rParentReplicator:TakeDamage( dmginfo:GetDamage(), h_Attacker, h_Attacker )
 			
 		end
 

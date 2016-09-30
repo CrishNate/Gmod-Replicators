@@ -83,6 +83,8 @@ REPLICATOR.ReplicatorInitialize = function( self )
 			, Vector( self:OBBCenter().x, self:OBBMins().y, 0 )
 		}
 		
+		self.rReplicatorNPCTarget = {}
+		
 		for k, v in pairs( points ) do
 		
 			local target = ents.Create( "npc_bullseye" )
@@ -90,16 +92,15 @@ REPLICATOR.ReplicatorInitialize = function( self )
 			target:SetPos( self:LocalToWorld( Vector( 0, 0, self:OBBMaxs().z ) ) )
 			target:Spawn()
 			
-			target.rReplicatorsNPCTarget = true
+			target.rNPCTarget = true
 			target:SetMoveType( MOVETYPE_NONE )
 			target:SetNotSolid( true )
 			target:SetParent( self )
 			
-			
 			target:SetKeyValue( "spawnflags", 65536 )
-			target:SetHealth( 1000 )
+			target:SetHealth( 9999 )
 			
-			self.rReplicatorNPCTarget = target
+			table.Add( self.rReplicatorNPCTarget, { target } )
 			target.rParentReplicator = self
 		end
 

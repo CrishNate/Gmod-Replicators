@@ -84,15 +84,16 @@ REPLICATOR.ReplicatorOnTakeDamage = function( replicatorType, self, dmginfo )
 	end
 end
 
-REPLICATOR.ReplicatorOnRemove = function( self ) 
+REPLICATOR.ReplicatorOnRemove = function( replicatorType, self ) 
 
 	local h_MetalId = self.rTargetMetalId
 	local h_DarkId = self.rTargetDarkId
-	
-	if self:IsValid() then g_WorkersCount[ self ] = nil end
-	
+		
 	if g_MetalPoints[ h_MetalId ] and g_MetalPoints[ h_MetalId ].used then g_MetalPoints[ h_MetalId ].used = false end
 	if g_DarkPoints[ h_DarkId ] and g_DarkPoints[ h_DarkId ].used then g_DarkPoints[ h_DarkId ].used = false end
+	
+	g_QueenCount[ self ] = nil 
+	g_WorkersCount[ self ] = nil
 	
 	timer.Remove( "rWalking"..self:EntIndex() )
 	timer.Remove( "rRun"..self:EntIndex() )
@@ -145,15 +146,18 @@ REPLICATOR.ReplicatorScanningResources = function( self )
 			
 			if m_Trace.MatType == MAT_METAL and v:IsValid() and not g_MetalPointsAsigned[ "_"..v:EntIndex() ] then AddMetalEntity( v ) end
 			
-		elseif v:IsNPC() then
+		elseif v:IsNPC() and !v.rNPCTarget then
+		
+			for k2, v2 in pairs( self.rReplicatorNPCTarget ) do
 			
-			v:AddEntityRelationship( self.rReplicatorNPCTarget, D_HT , 99 ) 
+				v:AddEntityRelationship( v2, D_HT , 99 )
 			
+			end
 		end
 	end
 end
 
-REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos )
+REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos, assembleToGueen )
 
 	local t_Count = 0
 	
@@ -161,7 +165,7 @@ REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos )
 	elseif replicatorType == 2 then t_Count = g_segments_to_assemble_queen
 	end
 	
-	local h_Ent
+	local h_Ent = Entity( 0 )
 	
 	for i = 1, t_Count do
 	
@@ -172,6 +176,12 @@ REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos )
 		h_Ent:SetAngles( AngleRand() )
 		h_Ent:SetOwner( self:GetOwner() )
 		h_Ent:Spawn()
+		
+		if assembleToGueen then
+			
+			h_Ent.rCraftingQueen = true
+			
+		end
 		
 		local phys = h_Ent:GetPhysicsObject()
 		phys:Wake()

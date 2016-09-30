@@ -115,7 +115,7 @@ if SERVER then
 
 	function ENT:OnRemove()
 	
-		REPLICATOR.ReplicatorOnRemove( self )
+		REPLICATOR.ReplicatorOnRemove( replicatorType, self )
 
 	end
 end
