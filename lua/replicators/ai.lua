@@ -641,7 +641,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 							
 						end
 						
-						timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ) / 10, 1, function()
+						timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ) / 10, 0, function()
 						
 							if self:IsValid() then
 							
