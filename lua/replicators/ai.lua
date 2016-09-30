@@ -634,8 +634,8 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 						// IF QUEEN
 						if replicatorType == 2 then
 						
-							table.Add( g_QueenCount, { self } )
-							g_WorkersCount[ self ] = nil
+							g_QueenCount[ self:EntIndex() ] = self
+							g_WorkersCount[ self:EntIndex() ] = nil
 							
 							net.Start( "rDrawStorageEffect" ) net.WriteEntity( self ) net.Broadcast()
 							

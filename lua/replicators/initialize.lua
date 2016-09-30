@@ -45,6 +45,7 @@ REPLICATOR.ReplicatorInitialize = function( self )
 		self.rModeStatus = 0
 		self.rYawRot = 0
 		
+		g_Replicators[ self:EntIndex() ] = self
 		g_WorkersCount[ self ] = self
 		m_Phys:SetMaterial( "gmod_ice" )
 		
@@ -69,7 +70,13 @@ REPLICATOR.ReplicatorInitialize = function( self )
 			end )
 		else REPLICATOR.PlaySequence( self, "stand" ) end
 
+		if game.SinglePlayer then // Костыль
 		
+			self.rOffset = Vector()
+			self.rAngleOffset = Angle()
+		
+		end
+
 		self.rPrevPointId = { case = "", index = 0 }
 		self.rPrevPos = self:GetPos()
 		

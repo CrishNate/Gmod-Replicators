@@ -223,7 +223,7 @@ REPLICATOR.CreatingPath = function( self, h_Ground )
 		elseif table.Count( h_Point ) > 0 and h_Point.pos:Distance( h_Ground.HitPos ) > 50 then
 		
 			self.rPrevPointId = { case = "", index = 0 }
-			net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( Vector( 0, 0, 0 ) ) net.Broadcast()
+			net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( Vector() ) net.Broadcast()
 			//print( "SPAM" )
 			
 		end

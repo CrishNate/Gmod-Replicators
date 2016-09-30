@@ -29,3 +29,4 @@ g_Attackers 		= { }
 
 g_QueenCount 		= { }
 g_WorkersCount 		= { }
+g_Replicators		= { }

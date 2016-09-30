@@ -69,12 +69,11 @@ REPLICATOR.ReplicatorOnTakeDamage = function( replicatorType, self, dmginfo )
 	
 		g_Attackers[ "r"..h_Attacker:EntIndex() ] = h_Attacker
 		
-		if ( replicatorType == 2 and not table.HasValue( g_QueenCount, self )) then
+		if ( replicatorType == 2 and not g_QueenCount[ self:EntIndex() ] ) then
 		
 			self.rResearch = true
 			
 		end
-		
 	end
 	
 	if self:Health() <= 0 then
@@ -92,8 +91,9 @@ REPLICATOR.ReplicatorOnRemove = function( replicatorType, self )
 	if g_MetalPoints[ h_MetalId ] and g_MetalPoints[ h_MetalId ].used then g_MetalPoints[ h_MetalId ].used = false end
 	if g_DarkPoints[ h_DarkId ] and g_DarkPoints[ h_DarkId ].used then g_DarkPoints[ h_DarkId ].used = false end
 	
-	g_QueenCount[ self ] = nil 
-	g_WorkersCount[ self ] = nil
+	g_QueenCount[ self:EntIndex() ] = nil 
+	g_WorkersCount[ self:EntIndex() ] = nil
+	g_Replicators[ self:EntIndex() ] = nil
 	
 	timer.Remove( "rWalking"..self:EntIndex() )
 	timer.Remove( "rRun"..self:EntIndex() )

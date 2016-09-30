@@ -680,9 +680,26 @@ if SERVER then
 end // SERVER
 
 
-hook.Add("Think", "replicator_keron", function( )
+hook.Add("Think", "CNR_Think", function( )
 	
 	if SERVER then
+		
+		if game.SinglePlayer then
+			
+			for k, v in pairs( g_Replicators ) do
+			
+				local h_Phys = v:GetPhysicsObject()
+				local h_Offset = v.rOffset
+				local h_AngleOffset = v.rAngleOffset
+				
+				if h_Offset != Vector() and h_AngleOffset != Angle() then
+				
+					h_Phys:SetPos( h_Phys:GetPos() + h_Offset )
+					h_Phys:SetAngles( v:LocalToWorldAngles( h_AngleOffset ) )
+					
+				end
+			end
+		end
 	end // SERVER
 	
 	if CLIENT then	
