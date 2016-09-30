@@ -4,6 +4,8 @@
 	
 ]]
 
+AddCSLuaFile( )
+
 local h_ReplicatorNoCollideGroup = {
 	"replicator_segment",
 	"replicator_queen",

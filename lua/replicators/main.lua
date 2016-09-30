@@ -19,7 +19,6 @@ include( "replicators/walk.lua" )
 
 list.Add( "OverrideMaterials", "rust/rusty_paint" )
 
-
 concommand.Add( "tr_replicator_limit", function( ply, cmd, args )
 
 	print( ply, cmd, args )
@@ -90,6 +89,8 @@ REPLICATOR.ReplicatorOnRemove = function( self )
 	local h_MetalId = self.rTargetMetalId
 	local h_DarkId = self.rTargetDarkId
 	
+	if self:IsValid() then g_WorkersCount[ self ] = nil end
+	
 	if g_MetalPoints[ h_MetalId ] and g_MetalPoints[ h_MetalId ].used then g_MetalPoints[ h_MetalId ].used = false end
 	if g_DarkPoints[ h_DarkId ] and g_DarkPoints[ h_DarkId ].used then g_DarkPoints[ h_DarkId ].used = false end
 	
@@ -109,24 +110,17 @@ end
 REPLICATOR.ReplicatorDarkPointAssig = function( self )
 
 	local h_Radius = Vector( 4, 4, 4 )
-	local h_Ground, h_GroundDist = REPLICATOR.TraceHullQuick( 
-		self:GetPos(), -self:GetUp() * 20, 
-		h_Radius, g_ReplicatorNoCollideGroupWith )
-		
+	local h_Ground, h_GroundDist = REPLICATOR.TraceHullQuick( self:GetPos(), -self:GetUp() * 20, h_Radius, g_ReplicatorNoCollideGroupWith )
 	local h_LColor = render.GetLightColor( self:GetPos() )
 	local h_DarkLevel = ( h_LColor.x + h_LColor.y + h_LColor.z ) / 3 * 100
-	
+
 	local h_HitNormal = h_Ground.HitNormal
 	h_HitNormal = Vector( math.Round( h_HitNormal.x ), math.Round( h_HitNormal.y ), math.Round( h_HitNormal.z ) )
 
 	local h_Pos, h_StringPos = REPLICATOR.ConvertToGrid( self:GetPos(), 100 )
+	h_Radius = Vector( 30, 30, 30 )
 	
-	local h_Radius = Vector( 30, 30, 30 )
-	
-	local h_Trace = REPLICATOR.TraceHullQuick( 
-		self:GetPos() + Vector( 0, 0, h_Radius.z + 2 ), 
-		Vector( ),
-		h_Radius, g_ReplicatorNoCollideGroupWith )
+	local h_Trace = REPLICATOR.TraceHullQuick( self:GetPos() + Vector( 0, 0, h_Radius.z + 2 ), Vector( ), h_Radius, g_ReplicatorNoCollideGroupWith )
 	
 	if h_HitNormal == Vector( 0, 0, 1 ) and h_DarkLevel < g_replicator_min_dark_level 
 	and not g_DarkPoints[ h_StringPos ] and not h_Trace.Hit then AddDarkPoint( h_StringPos, h_Ground.HitPos ) end

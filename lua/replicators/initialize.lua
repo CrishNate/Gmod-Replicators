@@ -1,10 +1,10 @@
-AddCSLuaFile( )
-
 --[[
 
 	REPLICATORS Initialization
 	
 ]]
+
+AddCSLuaFile( )
 
 REPLICATOR.ReplicatorInitialize = function( self )
 		
@@ -45,9 +45,8 @@ REPLICATOR.ReplicatorInitialize = function( self )
 		self.rModeStatus = 0
 		self.rYawRot = 0
 		
+		g_WorkersCount[ self ] = self
 		m_Phys:SetMaterial( "gmod_ice" )
-
-		table.Add( g_WorkersCount, self )
 		
 		if  IsValid( m_Phys ) and self.assemble then 
 			

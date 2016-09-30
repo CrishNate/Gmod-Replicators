@@ -1,10 +1,10 @@
-AddCSLuaFile( )
-
 --[[
 
 	REPLICATORS Walking system
 	
 ]]
+
+AddCSLuaFile( )
 
 REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_GroundDist, h_Move, h_MoveMode )
 
@@ -15,6 +15,8 @@ REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_Groun
 	
 	if not self:IsPlayerHolding() and h_Phys:IsGravityEnabled() and not self.rDisableMovining then
 
+		local t_Trace, t_Dist = REPLICATOR.TraceQuick( self:LocalToWorld( Vector( 0, 0, 5 ) ), -self:GetUp() * 10, g_ReplicatorNoCollideGroupWith, player.GetAll() )
+		
 		if h_GroundDist > 0 then
 		
 			if h_Ground.Hit then

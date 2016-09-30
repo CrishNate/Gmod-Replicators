@@ -1,10 +1,10 @@
-AddCSLuaFile( )
-
 --[[
 
 	REPLICATORS Moving on path
 	
 ]]
+
+AddCSLuaFile( )
 
 REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 	
@@ -37,7 +37,7 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 			
 			if not timer.Exists( t_Name ) then
 			
-				timer.Create( t_Name, 10, 1, function()
+				timer.Create( t_Name, 4, 1, function()
 					
 					if self:IsValid() then
 					

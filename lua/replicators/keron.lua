@@ -4,14 +4,15 @@
 	
 ]]
 
+AddCSLuaFile()
+
 local m_ID = 0
 local m_DebugLink = { }
 
-hook.Add( "Initialize", "CNR_RKeronInitialize", function( )
+hook.Add( "Initialize", "CNR_KeronInitialize", function( )
 
 	if SERVER then
 	
-		util.AddNetworkString( "draw_keron_network" )
 
 		util.AddNetworkString( "CNR_UpdateMetalPoint" )
 		util.AddNetworkString( "CNR_UpdateMetalEntity" )
@@ -22,6 +23,7 @@ hook.Add( "Initialize", "CNR_RKeronInitialize", function( )
 		util.AddNetworkString( "debug_rDrawPoint" )
 		util.AddNetworkString( "debug_rDrawpPoint" )
 		util.AddNetworkString( "debug_render_rerpl" )
+		util.AddNetworkString( "debug_keron_network" )
 
 		util.AddNetworkString( "rDark_points" )
 		
@@ -40,7 +42,7 @@ hook.Add( "Initialize", "CNR_RKeronInitialize", function( )
 end )
 
 
-hook.Add( "EntityTakeDamage", "CNR_RGetDamaged", function( target, dmginfo )
+hook.Add( "EntityTakeDamage", "CNR_GetDamaged", function( target, dmginfo )
 
 	if target:GetClass() == "npc_bullseye" and target.rReplicatorsNPCTarget then
 	
@@ -63,9 +65,10 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 		
 		if key == IN_WALK then
 		
-			net.Start( "draw_keron_network" )
-				net.WriteTable( g_PathPoints )
-			net.Broadcast()
+			print( table.Count( g_PathPoints ), table.Count( g_MetalPoints ), table.Count( g_DarkPoints ), table.Count( g_PointIsInvalid ), table.Count( g_Attackers ), table.Count( g_MetalPointsAsigned )  )
+			//net.Start( "debug_keron_network" )
+			//	net.WriteTable( g_PathPoints )
+			//net.Broadcast()
 			
 		end
 		
@@ -103,7 +106,7 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 end )
 
 
-hook.Add( "PostCleanupMap", "replicator_keron_clear", function( )
+hook.Add( "PostCleanupMap", "CNR_Cleanup", function( )
 
 	g_PathPoints = { }
 	g_MetalPoints = { }
@@ -134,11 +137,7 @@ hook.Add( "PostCleanupMap", "replicator_keron_clear", function( )
 
 end )
 
-if SERVER then
 	
-	//
-	// Returning closest point from Replicators Net Work to pos
-	//
 	function FindClosestPoint( pos, rad )
 	
 		local t_Dist = 0
@@ -161,6 +160,7 @@ if SERVER then
 		end
 		
 		local t_First = true
+		
 		for k, v in pairs( t_pathPoints ) do
 			local tracer = REPLICATOR.TraceLine( v.pos, pos, g_ReplicatorNoCollideGroupWith )
 			
@@ -193,9 +193,6 @@ if SERVER then
 		return t_Case, t_Index
 	end
 	
-	//
-	// Getting Path in Replicators Net Work to endpos
-	//
 	function GetPatchWay( start, endpos )
 
 		local t_Case, t_Index = FindClosestPoint( endpos, 1 )
@@ -264,9 +261,6 @@ if SERVER then
 		return {}
 	end
 	
-	//
-	// Getting Path in Replicators Net Work to closest entTable element
-	//
 	function GetPatchWayToClosestEnt( start, entTable )
 
 		local t_Links = { }
@@ -343,13 +337,11 @@ if SERVER then
 			
 		end
 		
-		print( "DOES FOUNDED" )
+		MsgC( Color( 255, 255, 0 ), "Doesn't founded closest ENT\n" )
+		
 		return {}, Entity( 0 )
 	end
 
-	//
-	// Getting Path in Replicators Net Work to closest Id
-	//
 	function GetPatchWayToClosestId( start )
 
 		local t_Links = { }
@@ -423,13 +415,12 @@ if SERVER then
 
 			if k > 10000 then MsgC( Color( 255, 0, 0 ), "BREAK ERROR 1", "\n" ) break end
 		end
+
+		MsgC( Color( 255, 255, 0 ), "Doesn't founded closest index\n" )
 		
 		return {}, 0
 	end
 
-	//
-	// Getting Path in Replicators Net Work to metal
-	//
 	function GetPatchWayToClosestMetal( start )
 
 		local t_Links = { }
@@ -515,17 +506,17 @@ if SERVER then
 							end
 						end
 					end
-				else end
-				
-			else MsgC( Color( 255, 0, 0 ), "ERROR LNK", "\n" ) end
+				end
+			end
 
 			t_LinksHistory[ v.case ][ v.index ] = { }
 			
 		end
+
+		MsgC( Color( 255, 255, 0 ), "Doesn't founded closest Metal\n" )
 		
 		return {}, 0
 	end
-
 	
 	function AddMetalPoint( _stringp, _pos, _normal, _amount )
 		
@@ -566,7 +557,6 @@ if SERVER then
 	function UpdateMetalEntity( _ent, _amount )
 	
 		g_MetalPoints[ _ent ].amount = _amount
-
 		net.Start( "CNR_UpdateMetalEntity" ) net.WriteEntity( _ent ) net.WriteFloat( _amount ) net.Broadcast()
 		
 	end
@@ -684,6 +674,8 @@ if SERVER then
 		return returnID, t_Mergered
 	end
 
+if SERVER then
+
 	net.Receive( "rDark_points", function() g_DarkPoints[ net.ReadString() ] = { pos = net.ReadVector(), used = false } end )		
 	
 end // SERVER
@@ -722,7 +714,7 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 	net.Receive( "CNR_AddMetalPoint", function() g_MetalPoints[ net.ReadString() ] = net.ReadTable() end )
 	net.Receive( "CNR_AddMetalEntity", function() g_MetalPoints[ net.ReadEntity() ] = net.ReadTable() end )
 
-	net.Receive( "draw_keron_network", function() g_PathPoints = net.ReadTable() end )
+	net.Receive( "debug_keron_network", function() g_PathPoints = net.ReadTable() end )
 	for k, v in pairs( g_PathPoints ) do
 	
 		render.SetMaterial( Material( "models/wireframe" ) )
@@ -752,7 +744,7 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 		render.SetColorMaterial()
 		render.SetBlend( 1 )
 		
-		//render.DrawBox( v.pos, Angle( ), -Vector( 10, 10, 0 ), Vector( 10, 10, 0 ), Color( 255, 255, 255, 10 ), true ) 
+		render.DrawBox( v.pos, Angle( ), -Vector( 5, 5, 0 ), Vector( 5, 5, 0 ), Color( 255, 255, 255, 10 ), true ) 
 		
 	end
 	
@@ -765,30 +757,26 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 			render.SetMaterial( Material( "rust/rusty_spot" ) )
 			render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), t_Radius * 128 ) 
 			
-		else
+		elseif v.ent:IsValid() and false then
+			render.SetMaterial( Material( "rust/rusty_paint" ) )
 		
-			if v.ent:IsValid() then
+			if not v.ent.model then
 			
-				render.SetMaterial( Material( "rust/rusty_paint" ) )
-			
-				if not v.ent.model then
+				local ent = ClientsideModel( v.ent:GetModel(), RENDERGROUP_OPAQUE_BRUSH )
+				ent:SetNoDraw( true )
+				ent:SetMaterial( Material( "models/shiny" ) )
+				v.ent.model = ent
 				
-					local ent = ClientsideModel( v.ent:GetModel(), RENDERGROUP_OPAQUE_BRUSH )
-					ent:SetNoDraw( true )
-					ent:SetMaterial( Material( "models/shiny" ) )
-					v.ent.model = ent
-					
-				end
-				
-				v.ent.model:SetPos( v.ent:LocalToWorld( Vector( 0, 0, 0 ) ) )
-				v.ent.model:SetAngles( v.ent:LocalToWorldAngles( Angle( 0, 0, 0 ) ) )
-				v.ent.model:SetupBones()
-				v.ent.model:DrawModel()
 			end
 			
+			v.ent.model:SetPos( v.ent:LocalToWorld( Vector( 0, 0, 0 ) ) )
+			v.ent.model:SetAngles( v.ent:LocalToWorldAngles( Angle( 0, 0, 0 ) ) )
+			v.ent.model:SetupBones()
+			v.ent.model:DrawModel()
+			
 		end
-		
 	end
+	
 
 	net.Receive( "debug_render_rerpl", function() m_DebugLink = net.ReadTable() end )
 	
