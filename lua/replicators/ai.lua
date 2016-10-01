@@ -217,8 +217,17 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 			elseif h_ModeStatus == 1 then
 				
 				local m_Name = "rEating"..self:EntIndex()
+				local m_MetalAmount = self.rMetalAmount
+				local t_Skip = false
 				
-				if not timer.Exists( m_Name ) then
+				if ( table.Count( g_QueenCount ) == 0 and m_MetalAmount >= ( g_segments_to_assemble_queen - g_segments_to_assemble_replicator )) then
+				
+					t_Skip = true
+					self.rModeStatus = 2
+					
+				end
+				
+				if not t_Skip and not timer.Exists( m_Name ) then
 				
 					timer.Create( m_Name, REPLICATOR.PlaySequence( self, "eating" ), 1, function()
 					
@@ -256,8 +265,9 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 
 							if t_TargetMetalAmount < g_replicator_collection_speed then m_Amount = t_TargetMetalAmount end
 
-							if not ( ( m_MetalAmount + m_Amount ) < g_segments_to_assemble_replicator
-								or table.Count( g_QueenCount ) == 0 and m_MetalAmount + m_Amount < ( g_segments_to_assemble_queen - g_segments_to_assemble_replicator ) ) then
+							if not (( m_MetalAmount + m_Amount ) < g_segments_to_assemble_replicator
+								or ( table.Count( g_QueenCount ) == 0 
+								and m_MetalAmount + m_Amount < ( g_segments_to_assemble_queen - g_segments_to_assemble_replicator ))) then
 
 								timer.Remove( "rEating"..self:EntIndex() )
 								
@@ -292,22 +302,27 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 								
 									self.rTargetEnt = Entity( 0 )
 									
-									if mPointInfo.ent and mPointInfo.ent:IsValid() then
-									
-										constraint.RemoveAll( self )
-										self:SetCollisionGroup( COLLISION_GROUP_NONE )
+									if mPointInfo.ent then
 										
-										if replicatorType == 1 then h_Phys:SetMass( 25 )
-										elseif replicatorType == 2 then h_Phys:SetMass( 100 )
+										if mPointInfo.ent:IsValid() then
+										
+											constraint.RemoveAll( self )
+											self:SetCollisionGroup( COLLISION_GROUP_NONE )
+											
+											if replicatorType == 1 then h_Phys:SetMass( 25 )
+											elseif replicatorType == 2 then h_Phys:SetMass( 100 )
+											end
+											
+											REPLICATOR.DissolveEntity( mPointInfo.ent )
+											g_MetalPointsAsigned[ mPointInfo.ent:EntIndex() ] = nil
+											
 										end
 										
-										REPLICATOR.DissolveEntity( mPointInfo.ent )
-										g_MetalPointsAsigned[ mPointInfo.ent ] = nil
-										
-									end
+									else
 									
-
-									if g_MetalPoints[ t_TargetMetalId ] then g_MetalPoints[ t_TargetMetalId ] = nil end
+										g_MetalPoints[ t_TargetMetalId ] = nil
+									
+									end
 									
 								end
 							end
@@ -447,34 +462,30 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 				
 					timer.Create( m_Name, REPLICATOR.PlaySequence( self, "stand" ), 1, function() timer.Remove( "rGiving"..self:EntIndex() ) end )
 					
-					if self:IsValid() then
+					local m_QueenEnt = self.rTargetGueen
+					local m_MetalAmount = math.min( g_replicator_giving_speed, self.rMetalAmount )
 					
-						self:NextThink( CurTime() )
+					if m_QueenEnt and m_QueenEnt:IsValid() then
 					
-						local m_QueenEnt = self.rTargetGueen
+						m_QueenEnt.rMetalAmount = m_QueenEnt.rMetalAmount + m_MetalAmount
+						self.rMetalAmount = self.rMetalAmount - m_MetalAmount
+						
+					else
+					
+						MsgC( Color( 255, 255, 0 ), "MISSING queen ( giving )\n" )
+						
+						if table.Count( g_QueenCount ) > 0 then self.rModeStatus = 2
+						else self.rModeStatus = 1 end
+						
+					end
+					
+					if self.rMetalAmount <= 0 then
 
-						local m_MetalAmount = math.min( g_replicator_giving_speed, self.rMetalAmount )
+						self.rMoveReverse 	= true
+						self.rMove 			= true
+						self.rMode 			= 1
+						self.rModeStatus 	= 0
 						
-						if m_QueenEnt and m_QueenEnt:IsValid() then
-						
-							m_QueenEnt.rMetalAmount = m_QueenEnt.rMetalAmount + m_MetalAmount
-							self.rMetalAmount = self.rMetalAmount - m_MetalAmount
-							
-						else
-						
-							MsgC( Color( 255, 0, 0 ), "ERROR queen doesn't found ( giving )\n" )
-							self.rModeStatus = 2
-							
-						end
-						
-						if self.rMetalAmount <= 0 then
-
-							self.rMoveReverse = true
-							
-							self.rMove = true
-							self.rMode = 1
-							self.rModeStatus = 0
-						end
 					end
 				end
 			end
@@ -607,7 +618,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 			
 		elseif h_Mode == 3 then
 			
-		// ===================== Transporting mode ======================
+		// ===================== Crafting mode ======================
 		elseif h_Mode == 4 then
 		
 			if h_ModeStatus == 1 then
@@ -707,7 +718,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 		elseif h_Ground.Entity:IsValid() then
 
 			self.rTargetMetalId = h_Ground.Entity
-			if not g_MetalPointsAsigned[ h_Ground.Entity ] then AddMetalEntity( h_Ground.Entity ) end
+			if not g_MetalPointsAsigned[ h_Ground.Entity:EntIndex() ] then AddMetalEntity( h_Ground.Entity ) end
 			
 		end
 	end

@@ -12,7 +12,7 @@ REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_Groun
 	local h_AngleOffset 	= Angle()
 	local h_Phys 			= self:GetPhysicsObject()
 	
-	if game.SinglePlayer then // Костыль
+	if game.SinglePlayer() then // Костыль
 	
 		self.rOffset = Vector()
 		self.rAngleOffset = Angle()
@@ -131,10 +131,10 @@ REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_Groun
 
 				if h_MoveMode == 0 then h_Offset = h_Offset / 1.5 end
 				
-				if game.SinglePlayer then
+				if game.SinglePlayer() then
 				
 					self.rOffset = h_Offset / 10
-					self.rAngleOffset = Angle( h_AngleOffset.pitch / 4 , h_AngleOffset.yaw / 4 , h_AngleOffset.roll / 4 )
+					self.rAngleOffset = Angle( h_AngleOffset.pitch / 10 , h_AngleOffset.yaw / 10 , h_AngleOffset.roll / 10 )
 				
 				else
 				

@@ -541,10 +541,11 @@ end )
 		
 	function AddMetalEntity( _ent )
 
-		local _amount = _ent:GetModelRadius() * 4
+		local _amount = ( _ent:GetModelRadius() * _ent:GetPhysicsObject():GetMass() ) / 100
+		print( _amount )
 		
 		g_MetalPoints[ _ent ] = { ent = _ent, amount = _amount }
-		g_MetalPointsAsigned[ _ent ] = true
+		g_MetalPointsAsigned[ _ent:EntIndex() ] = true
 
 		net.Start( "CNR_AddMetalEntity" )
 			net.WriteEntity( _ent )
@@ -684,7 +685,7 @@ hook.Add("Think", "CNR_Think", function( )
 	
 	if SERVER then
 		
-		if game.SinglePlayer then
+		if game.SinglePlayer() then
 			
 			for k, v in pairs( g_Replicators ) do
 			
