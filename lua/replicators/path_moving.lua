@@ -176,6 +176,10 @@ REPLICATOR.CreatingPath = function( self, h_Ground )
 
 			REPLICATOR.ReplicatorMovingOnPath( self, h_Phys, h_Ground )
 			
+			local m_Height = 0
+			if replicatorType == 1 then m_Height = 5
+			elseif replicatorType == 2 then m_Height = 7 end
+			
 			local t_pPoint = h_Ground.HitPos - self:GetUp() * m_Height
 			
 			if table.Count( h_Point ) > 0 then
