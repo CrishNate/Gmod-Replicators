@@ -15,9 +15,7 @@ g_replicator_collection_speed		= 5
 g_replicator_giving_speed			= 10
 g_replicator_limit					= 30
 
-g_replicator_min_dark_level			= 20
-
-g_amount_of_worker_for_one_queen	= 10
+g_replicator_min_dark_level			= 30
 
 //========================= Replicators data ===========================
 g_PathPoints 		= { }

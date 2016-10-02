@@ -298,8 +298,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 								self.rModeStatus 		= 0
 
 								if mPointInfo and ( mPointInfo.ent and mPointInfo.ent:IsValid() ) then
-									MsgC( Color( 0, 255, 255 ), "REMOVE METAL ", mPointInfo.ent, "\n" )
-								
+
 									self.rTargetEnt = Entity( 0 )
 									
 									if mPointInfo.ent then
@@ -429,7 +428,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 						
 					else self.rResearch = true end
 					
-				else MsgC( Color( 255, 0, 0 ), "ERROR queen doesn't found ( transport )\n" ) end
+				end
 				
 			elseif h_ModeStatus == 3 then
 			
@@ -451,8 +450,6 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 					
 				end
 				
-				if not m_QueenEnt:IsValid() then MsgC( Color( 255, 0, 0 ), "Exeption: m_Queen unvalid" ) end
-				
 			elseif h_ModeStatus == 4 then
 
 				// ======================= Giving metal ==========================
@@ -471,8 +468,6 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 						self.rMetalAmount = self.rMetalAmount - m_MetalAmount
 						
 					else
-					
-						MsgC( Color( 255, 255, 0 ), "MISSING queen ( giving )\n" )
 						
 						if table.Count( g_QueenCount ) > 0 then self.rModeStatus = 2
 						else self.rModeStatus = 1 end
@@ -514,7 +509,6 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 						
 							local h_Forward, h_ForwardDist = REPLICATOR.TraceHullQuick( self:GetPos(), self:GetForward() * 50, Vector( 12, 12, 12 ), g_ReplicatorNoCollideGroupWith )
 
-							print( h_Forward.Hit, h_Forward.Entity )
 							if h_Forward.Hit and h_Forward.Entity == m_Target then
 							
 								self:SetAngles( ( m_Target:GetPos() - h_Phys:GetPos() ):Angle() + Angle( -90, 0, 0 ) )
@@ -700,12 +694,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 	REPLICATOR.ReplicatorScanningResources( self )
 
 	if not h_Phys:IsGravityEnabled() and h_Phys:IsMotionEnabled() then h_Phys:SetVelocity( self:GetForward() * h_Phys:GetMass() / 2 ) end
-	
-	//if  then
-	
-		//REPLICATOR.ReplicatorBreak( replicatorType, self, 0, self:LocalToWorld( Vector() ), false )
-		
-	//end
+
 		
 	local m_Pos, m_PosString = REPLICATOR.ConvertToGrid( h_Ground.HitPos, 30 )
 

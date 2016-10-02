@@ -20,14 +20,6 @@ hook.Add( "Initialize", "CNR_KeronInitialize", function( )
 		util.AddNetworkString( "CNR_AddMetalPoint" )
 		util.AddNetworkString( "CNR_AddMetalEntity" )
 		
-		util.AddNetworkString( "debug_rDrawPoint" )
-		util.AddNetworkString( "debug_rDrawpPoint" )
-		util.AddNetworkString( "debug_render_rerpl" )
-		util.AddNetworkString( "debug_keron_network" )
-
-		util.AddNetworkString( "rDark_points" )
-		
-		
 		g_Replicator_entDissolver = ents.Create( "env_entity_dissolver" )
 		if not IsValid( g_Replicator_entDissolver ) then return end
 		g_Replicator_entDissolver:Spawn()
@@ -58,52 +50,6 @@ hook.Add( "EntityTakeDamage", "CNR_GetDamaged", function( target, dmginfo )
 
 end )
 
-hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key ) 
-
-	if SERVER then
-		
-		if key == IN_WALK then
-		
-			//print( table.Count( g_PathPoints ), table.Count( g_MetalPoints ), table.Count( g_DarkPoints ), table.Count( g_PointIsInvalid ), table.Count( g_Attackers ), table.Count( g_MetalPointsAssigned )  )
-			net.Start( "debug_keron_network" )
-				net.WriteTable( g_PathPoints )
-			net.Broadcast()
-			
-		end
-		
-		//if key == IN_RUN then PrintTable( g_MetalPoints ) end
-		
-		//if key == IN_RELOAD then endPOS = ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10 print( endPOS ) end
-		
-		/*
-		if key == IN_ZOOM then
-		
-			local case, index = FindClosestPoint( ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10, 1 )
-			print( id )
-		end
-
-		if key == IN_USE then
-			local case, index = FindClosestPoint( ply:GetEyeTrace().HitPos + ply:GetEyeTrace().HitNormal * 10, 1 )
-
-			print( case, index )
-			
-			local result = GetPatchWay( { case = case, index = index }, endPOS )
-
-			PrintTable( result )
-			
-			net.Start( "debug_render_rerpl" ) net.WriteTable( result ) net.Broadcast()
-		end
-		*/
-	end
-	
-	if CLIENT then
-	
-		if key == IN_RELOAD then
-			g_PathPoints = { }
-		end
-	end
-end )
-
 
 hook.Add( "PostCleanupMap", "CNR_Cleanup", function( )
 
@@ -129,8 +75,6 @@ hook.Add( "PostCleanupMap", "CNR_Cleanup", function( )
 		g_Replicator_entDissolver:SetSolid( SOLID_NONE )
 		g_Replicator_entDissolver:SetKeyValue( "magnitude", "0" )
 		g_Replicator_entDissolver:SetKeyValue( "dissolvetype", "3" )
-
-		PrintTable( g_Replicator_entDissolver:GetTable() )
 		
 	end
 
@@ -254,7 +198,7 @@ end )
 
 			t_LinksHistory[ v.case ][ v.index ] = { }
 
-			if k > 10000 then MsgC( Color( 255, 0, 0 ), "BREAK ERROR 1", "\n" ) PrintTable( t_Links ) break end
+			if k > 10000 then MsgC( Color( 255, 0, 0 ), "BREAK ERROR 1", "\n" ) break end
 		end
 		
 		return {}
@@ -542,11 +486,9 @@ end )
 	function AddMetalEntity( _ent )
 
 		local _amount = ( _ent:GetModelRadius() * _ent:GetPhysicsObject():GetMass() ) / 100
-		print( _amount )
 		
 		g_MetalPoints[ _ent:EntIndex() ] = { ent = _ent, amount = _amount }
 		g_MetalPointsAssigned[ _ent:EntIndex() ] = true
-		//PrintTable( g_MetalPointsAssigned )
 
 		net.Start( "CNR_AddMetalEntity" )
 			net.WriteInt( _ent:EntIndex(), 16 )
@@ -590,8 +532,6 @@ end )
 				
 					local v2pos = g_PathPoints[ v2.case ][ v2.index ].pos
 					
-					//print( v.case, v.index, v2.case, v2.index, v.pos:Distance( _pos ), not ( v.case == v2.case and v.index == v2.index ), ( v.pos:Distance( _pos ) < 10 and not REPLICATOR.TraceLine( v.pos, _pos, g_ReplicatorNoCollideGroupWith ).Hit ) )
-					
 					if not ( v.case == v2.case and v.index == v2.index ) 
 						and ( ( v.pos:Distance( _pos ) < 50 and not REPLICATOR.TraceLine( v.pos, v2pos, g_ReplicatorNoCollideGroupWith ).Hit ) 
 							or ( v.pos:Distance( _pos ) < 10 and not REPLICATOR.TraceLine( v.pos, _pos, g_ReplicatorNoCollideGroupWith ).Hit ) ) then
@@ -600,10 +540,6 @@ end )
 						
 							g_PathPoints[ v.case ][ v.index ].connection[ v2.case.."|"..v2.index ] = { case = v2.case, index = v2.index }
 							g_PathPoints[ v2.case ][ v2.index ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
-
-							//table.Add( g_PathPoints[ v.case ][ v.index ].connection, {{ case = v2.case, index = v2.index }} )
-							//table.Add( g_PathPoints[ v2.case ][ v2.index ].connection, {{ case = v.case, index = v.index }} )
-							
 							t_Mergered = true
 						end
 						
@@ -652,26 +588,14 @@ end )
 			else table.Add( g_PathPoints[ sCoord ], {{ pos = _pos, connection = {}, case = sCoord, index = m_ID }} ) end
 			
 			for k, v in pairs( _connection ) do
-			
-				//local result = REPLICATOR.TraceLine( _pos, g_PathPoints[ v.case ][ v.index ].pos, g_ReplicatorNoCollideGroupWith )
 
-				//if not result.Hit then
-
-					g_PathPoints[ v.case ][ v.index ].connection[ sCoord.."|"..m_ID ] = { case = sCoord, index = m_ID }
-					g_PathPoints[ sCoord ][ m_ID ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
-					
-					//table.Add( g_PathPoints[ v.case ][ v.index ].connection, {{ case = sCoord, index = m_ID }} )
-					//table.Add( g_PathPoints[ sCoord ][ m_ID ].connection, {{ case = v.case, index = v.index }} )
-
-					//PrintMessage( HUD_PRINTTALK, m_ID )
-					
-				//end
+				g_PathPoints[ v.case ][ v.index ].connection[ sCoord.."|"..m_ID ] = { case = sCoord, index = m_ID }
+				g_PathPoints[ sCoord ][ m_ID ].connection[ v.case.."|"..v.index ] = { case = v.case, index = v.index }
 				
 			end
 			
 		end
 		
-		//PrintTable( returnID )
 		return returnID, t_Mergered
 	end
 
@@ -761,9 +685,7 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 	
 		render.SetColorMaterial()
 		render.SetBlend( 1 )
-		
-		//render.DrawBox( v.pos, Angle( ), -Vector( 5, 5, 0 ), Vector( 5, 5, 0 ), Color( 255, 255, 255, 10 ), true ) 
-		
+
 	end
 	
 	for k, v in pairs( g_MetalPoints ) do

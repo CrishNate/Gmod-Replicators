@@ -9,8 +9,6 @@ ENT.Spawnable 		= true
 ENT.AdminSpawnable 	= false
 ENT.Category		= "Stargate"
 
-//if( CLIENT ) then killicon.Add( "ent_undertale_bone_throw", "undertale/killicon_bone", color_white ) end
-
 function ENT:Initialize()
 
 	if SERVER  then

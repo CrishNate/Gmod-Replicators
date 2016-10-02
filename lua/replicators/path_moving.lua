@@ -70,7 +70,6 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 							if not g_PointIsInvalid[ m_Case ][ m_Index ] then g_PointIsInvalid[ m_Case ][ m_Index ] = 0 end
 							
 							g_PointIsInvalid[ m_Case ][ m_Index ] = g_PointIsInvalid[ m_Case ][ m_Index ] + 1
-							MsgC( Color( 255, 255, 0 ), "Bad Point", m_Case, " ", m_Index, " ", g_PointIsInvalid[ m_Case ][ m_Index ], "\n" )
 							
 						end						
 					end
@@ -114,7 +113,7 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 						if g_PointIsInvalid[ m_Case ] and g_PointIsInvalid[ m_Case ][ m_Index ] then
 						
 							g_PointIsInvalid[ m_Case ][ m_Index ] = 0
-							MsgC( Color( 0, 255, 0 ), "Fixing Point", m_Case, " ", m_Index, " ", g_PointIsInvalid[ m_Case ][ m_Index ], "\n" )
+							
 						end
 					end
 				end
@@ -153,7 +152,6 @@ REPLICATOR.ReplicatorMovingOnPath = function( self, h_phys, ground )
 						if g_PointIsInvalid[ m_Case ] and g_PointIsInvalid[ m_Case ][ m_Index ] then
 						
 							g_PointIsInvalid[ m_Case ][ m_Index ] = 0
-							MsgC( Color( 0, 255, 0 ), "Fixing Point", m_Case, " ", m_Index, " ", g_PointIsInvalid[ m_Case ][ m_Index ], "\n" )
 							
 						end
 					end
@@ -224,8 +222,7 @@ REPLICATOR.CreatingPath = function( self, h_Ground )
 		
 			self.rPrevPointId = { case = "", index = 0 }
 			net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( Vector() ) net.Broadcast()
-			//print( "SPAM" )
-			
+
 		end
 		
 	else
