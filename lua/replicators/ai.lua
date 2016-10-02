@@ -289,7 +289,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 								
 							end
 							
-							if t_TargetMetalAmount == 0 then
+							if ( t_TargetMetalAmount - m_Amount ) <= 0 then
 								
 								timer.Remove( "rEating"..self:EntIndex() )
 								
@@ -314,7 +314,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 											end
 											
 											REPLICATOR.DissolveEntity( mPointInfo.ent )
-											g_MetalPointsAsigned[ mPointInfo.ent:EntIndex() ] = nil
+											g_MetalPointsAssigned[ mPointInfo.ent:EntIndex() ] = nil
 											
 										end
 										
@@ -501,45 +501,46 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 				
 					local m_Filter = { }
 					table.Add( m_Filter, g_ReplicatorNoCollideGroupWith )
-					table.Add( m_Filter, { "player" } )
+					table.Add( m_Filter, { "player", "npc" } )
 					
 					local m_Trace, m_TraceDist = REPLICATOR.TraceLine( self:GetPos(), m_Target:GetPos(), m_Filter )
 					
-					if not m_Trace.Hit then
+					if not m_Trace.Hit or m_Target.Entity == m_Target then
 					
 						self.rMoveTo = m_Target:GetPos()
 						timer.Start( "rRefind"..self:EntIndex() )
 						
-						if m_Target:GetPos():Distance( self:GetPos() ) < 100 then
+						if m_Target:GetPos():Distance( self:GetPos() ) < 150 then
 						
-							if h_Ground.Hit then
+							local h_Forward, h_ForwardDist = REPLICATOR.TraceHullQuick( self:GetPos(), self:GetForward() * 50, Vector( 12, 12, 12 ), g_ReplicatorNoCollideGroupWith )
+
+							print( h_Forward.Hit, h_Forward.Entity )
+							if h_Forward.Hit and h_Forward.Entity == m_Target then
 							
-								if h_Ground.Entity == m_Target then
-								
-									h_Phys:SetAngles( ( m_Target:GetPos() - h_Phys:GetPos() ):Angle() + Angle( -90, 0, 0 ) )
-									h_Phys:SetPos( h_Ground.HitPos )
+								self:SetAngles( ( m_Target:GetPos() - h_Phys:GetPos() ):Angle() + Angle( -90, 0, 0 ) )
+								self:SetPos( h_Forward.HitPos )
 
-									self.rModeStatus 	= 1
-									self.rMove 			= false
-									h_StandAnimReset 	= true
-									
-									self:SetCollisionGroup( COLLISION_GROUP_PASSABLE_DOOR )
-									timer.Remove( "rRefind"..self:EntIndex() )
-
-									if m_Target:IsPlayer() or m_Target:IsNPC() then self:SetParent( m_Target, 1 )
-									else self:SetParent( m_Target, -1 ) end
-									
-								else
+								self.rModeStatus 	= 1
+								self.rMove 			= false
+								h_StandAnimReset 	= true
 								
-									self.rDisableMovining = true
-									h_Phys:SetVelocity( ( m_Target:GetPos() + Vector( 0, 0, m_Target:OBBMaxs().z ) - h_Phys:GetPos() ) * 4 )
-									
-								end
+								self:SetCollisionGroup( COLLISION_GROUP_PASSABLE_DOOR )
+								timer.Remove( "rRefind"..self:EntIndex() )
+
+								if m_Target:IsPlayer() or m_Target:IsNPC() then self:SetParent( m_Target, 1 )
+								else self:SetParent( m_Target, -1 ) end
+								
+							end
+							
+							if h_Ground.Hit then
+								
+								self.rDisableMovining = true
+								h_Phys:SetVelocity( ( m_Target:GetPos() + Vector( 0, 0, m_Target:OBBMaxs().z ) - h_Phys:GetPos() ) * 4 )
 								
 							else
 							
 								local JUANG = self:WorldToLocalAngles( ( m_Target:GetPos() - h_Phys:GetPos() ):Angle() ).y
-								local zeroAng = self:WorldToLocalAngles( Angle( -50, JUANG + self:GetAngles().yaw, 0 ) )
+								local zeroAng = self:WorldToLocalAngles( Angle( 0, JUANG + self:GetAngles().yaw, 0 ) )
 
 								h_Phys:AddAngleVelocity( Vector( zeroAng.z, zeroAng.x, zeroAng.y ) * 6 - h_Phys:GetAngleVelocity() )
 
@@ -587,14 +588,14 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 					
 					local m_Target = g_Attackers[ self.rTargetId ]
 					
-					if m_Target:IsValid() and m_Target:Alive() then
-					
-						m_Target:TakeDamage( 3, self, self )
-						h_Phys = self:GetPhysicsObject()
-						
-					end
-					
 					if m_Target then
+					
+						if m_Target:IsValid() and m_Target:Health() > 0 then
+						
+							m_Target:TakeDamage( 3, self, self )
+							h_Phys = self:GetPhysicsObject()
+							
+						end
 					
 						if m_Target:Health() <= 0 then UnParm_Ent( self, h_Phys, m_Target, self.rTargetId ) end
 						
@@ -652,7 +653,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 							
 						end
 						
-						timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ) / 10, 0, function()
+						timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ), 0, function()
 						
 							if self:IsValid() then
 							
@@ -713,12 +714,12 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 		if h_Ground.HitWorld then 
 			
 			self.rTargetMetalId = m_PosString
-			if not g_MetalPointsAsigned[ m_PosString ] then AddMetalPoint( m_PosString, h_Ground.HitPos, h_Ground.HitNormal, 100 ) end
+			if not g_MetalPointsAssigned[ m_PosString ] then AddMetalPoint( m_PosString, h_Ground.HitPos, h_Ground.HitNormal, 100 ) end
 		
 		elseif h_Ground.Entity:IsValid() then
-
-			self.rTargetMetalId = h_Ground.Entity
-			if not g_MetalPointsAsigned[ h_Ground.Entity:EntIndex() ] then AddMetalEntity( h_Ground.Entity ) end
+						
+			self.rTargetMetalId = h_Ground.Entity:EntIndex()
+			if not g_MetalPointsAssigned[ self.rTargetMetalId ] then AddMetalEntity( h_Ground.Entity ) end
 			
 		end
 	end

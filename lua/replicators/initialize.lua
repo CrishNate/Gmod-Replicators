@@ -46,10 +46,10 @@ REPLICATOR.ReplicatorInitialize = function( self )
 		self.rYawRot = 0
 		
 		g_Replicators[ self:EntIndex() ] = self
-		g_WorkersCount[ self ] = self
+		g_WorkersCount[ self:EntIndex() ] = self
 		m_Phys:SetMaterial( "gmod_ice" )
 		
-		if  IsValid( m_Phys ) and self.assemble then 
+		if  IsValid( m_Phys ) and self.rAssembling then 
 			
 			m_Phys:EnableGravity( true )
 			

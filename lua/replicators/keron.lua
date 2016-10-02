@@ -64,10 +64,10 @@ hook.Add( "KeyPress", "debug_render_rerpl", function( ply, key )
 		
 		if key == IN_WALK then
 		
-			print( table.Count( g_PathPoints ), table.Count( g_MetalPoints ), table.Count( g_DarkPoints ), table.Count( g_PointIsInvalid ), table.Count( g_Attackers ), table.Count( g_MetalPointsAsigned )  )
-			//net.Start( "debug_keron_network" )
-			//	net.WriteTable( g_PathPoints )
-			//net.Broadcast()
+			//print( table.Count( g_PathPoints ), table.Count( g_MetalPoints ), table.Count( g_DarkPoints ), table.Count( g_PointIsInvalid ), table.Count( g_Attackers ), table.Count( g_MetalPointsAssigned )  )
+			net.Start( "debug_keron_network" )
+				net.WriteTable( g_PathPoints )
+			net.Broadcast()
 			
 		end
 		
@@ -111,7 +111,7 @@ hook.Add( "PostCleanupMap", "CNR_Cleanup", function( )
 	g_MetalPoints = { }
 	m_DebugLink = { }
 	g_DarkPoints = { }
-	g_MetalPointsAsigned = { }
+	g_MetalPointsAssigned = { }
 	g_Attackers = { }
 	
 	g_QueenCount = { }
@@ -518,12 +518,12 @@ end )
 	end
 	
 	function AddMetalPoint( _stringp, _pos, _normal, _amount )
-		
+	
 		g_MetalPoints[ _stringp ] = { pos = _pos, normal = _normal, amount = _amount, used = false }
-		g_MetalPointsAsigned[ _stringp ] = true
+		g_MetalPointsAssigned[ _stringp ] = true
 		
 		local t_tracer = REPLICATOR.TraceQuick( _pos, -_normal * 20, g_ReplicatorNoCollideGroupWith )
-				
+		
 		net.Start( "CNR_AddMetalPoint" )
 			net.WriteString( _stringp )
 			net.WriteTable( { pos = t_tracer.HitPos, normal = t_tracer.HitNormal, amount = _amount, used = false } )
@@ -544,11 +544,12 @@ end )
 		local _amount = ( _ent:GetModelRadius() * _ent:GetPhysicsObject():GetMass() ) / 100
 		print( _amount )
 		
-		g_MetalPoints[ _ent ] = { ent = _ent, amount = _amount }
-		g_MetalPointsAsigned[ _ent:EntIndex() ] = true
+		g_MetalPoints[ _ent:EntIndex() ] = { ent = _ent, amount = _amount }
+		g_MetalPointsAssigned[ _ent:EntIndex() ] = true
+		//PrintTable( g_MetalPointsAssigned )
 
 		net.Start( "CNR_AddMetalEntity" )
-			net.WriteEntity( _ent )
+			net.WriteInt( _ent:EntIndex(), 16 )
 			net.WriteTable( { ent = _ent, amount = _amount, used = false } )
 		net.Broadcast()
 		
@@ -556,8 +557,8 @@ end )
 	
 	function UpdateMetalEntity( _ent, _amount )
 	
-		g_MetalPoints[ _ent ].amount = _amount
-		net.Start( "CNR_UpdateMetalEntity" ) net.WriteEntity( _ent ) net.WriteFloat( _amount ) net.Broadcast()
+		g_MetalPoints[ _ent:EntIndex() ].amount = _amount
+		net.Start( "CNR_UpdateMetalEntity" ) net.WriteInt( _ent:EntIndex(), 16 ) net.WriteFloat( _amount ) net.Broadcast()
 		
 	end
 		
@@ -726,10 +727,10 @@ end // CLIENT
 hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 	
 	net.Receive( "CNR_UpdateMetalPoint", function() g_MetalPoints[ net.ReadString() ].amount = net.ReadFloat() end )
-	net.Receive( "CNR_UpdateMetalEntity", function() g_MetalPoints[ net.ReadEntity() ].amount = net.ReadFloat() end )
+	net.Receive( "CNR_UpdateMetalEntity", function() g_MetalPoints[ net.ReadInt( 16 ) ].amount = net.ReadFloat() end )
 	
 	net.Receive( "CNR_AddMetalPoint", function() g_MetalPoints[ net.ReadString() ] = net.ReadTable() end )
-	net.Receive( "CNR_AddMetalEntity", function() g_MetalPoints[ net.ReadEntity() ] = net.ReadTable() end )
+	net.Receive( "CNR_AddMetalEntity", function() g_MetalPoints[ net.ReadInt( 16 ) ] = net.ReadTable() end )
 
 	net.Receive( "debug_keron_network", function() g_PathPoints = net.ReadTable() end )
 	for k, v in pairs( g_PathPoints ) do
@@ -761,7 +762,7 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 		render.SetColorMaterial()
 		render.SetBlend( 1 )
 		
-		render.DrawBox( v.pos, Angle( ), -Vector( 5, 5, 0 ), Vector( 5, 5, 0 ), Color( 255, 255, 255, 10 ), true ) 
+		//render.DrawBox( v.pos, Angle( ), -Vector( 5, 5, 0 ), Vector( 5, 5, 0 ), Color( 255, 255, 255, 10 ), true ) 
 		
 	end
 	
@@ -774,7 +775,8 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 			render.SetMaterial( Material( "rust/rusty_spot" ) )
 			render.DrawQuadEasy( v.pos, v.normal, t_Radius, t_Radius, Color( 255, 255, 255 ), t_Radius * 128 ) 
 			
-		elseif v.ent:IsValid() and false then
+		elseif v.ent:IsValid() and false then //Blocked
+		
 			render.SetMaterial( Material( "rust/rusty_paint" ) )
 		
 			if not v.ent.model then

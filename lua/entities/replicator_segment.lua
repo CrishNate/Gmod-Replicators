@@ -27,12 +27,12 @@ function ENT:Initialize()
 		self:SetUnFreezable( true ) 
 		self:SetCollisionGroup( COLLISION_GROUP_WEAPON )
 		
-		self:SetVar( "assembling", false )
-		self:SetVar( "used", Entity( 0 ) )
+		self.rAssembling = false
+		self.rUsed = Entity( 0 )
 		self:CollisionRulesChanged()
 		self:SetCustomCollisionCheck( true ) 	
 
-		self:SetVar( "rCraftingQueen", false )
+		self.rCraftingQueen = false
 		
 		local phys = self:GetPhysicsObject()
 		
@@ -50,10 +50,6 @@ function ENT:Initialize()
 end
 
 if SERVER then
-
-	//
-	// ============================ Hit sounds
-	//
 	
 	function ENT:PhysicsCollide( data, phys )
 	
@@ -64,7 +60,6 @@ if SERVER then
 	
 	function ENT:OnTakeDamage( dmginfo )
 	
-		//self:TakeDamage( dmginfo:GetDamage(), "", "" )
 		local damage = dmginfo:GetDamage()
 		
 		self:SetHealth( self:Health() - damage )
@@ -74,76 +69,70 @@ if SERVER then
 	
 	function ENT:Think()
 	
-		//
-		// =========================== Assembling segments it to a replicator
-		//
+		if( !self.rUsed:IsValid() ) then
 
-		if( !self:GetVar( "used" ):IsValid() ) then
-
-			if( !self:GetVar( "assembling" ) ) then
+			if( !self.rAssembling ) then
 			
 				self:NextThink( CurTime() + 1 )
 				
-				local result = ents.FindInSphere( self:GetPos(), 200 )
-				local segments = {}
-				local save = {}
+				local m_Result = ents.FindInSphere( self:GetPos(), 200 )
+				local m_Segments = {}
+				local m_Save = {}
 				
-				table.Add( segments, { self } )
+				table.insert( m_Segments, self )
 				
-				for k, v in ipairs( result ) do
+				for k, v in ipairs( m_Result ) do
 				
 					if( v:GetClass() == "replicator_segment" and 
 							v:GetVelocity():Length() < 10 and 
-								!v:GetVar( "assembling" ) and !v:GetVar( "used" ):IsValid() and v != self ) then
+								!v.rAssembling and !v.rUsed:IsValid() and v != self ) then
 								
-						if not self:GetVar( "rCraftingQueen" ) then
+						if not self.rCraftingQueen then
 						
-							if table.Count( segments ) < g_segments_to_assemble_replicator then table.Add( segments, { v } ) 
-							elseif table.Count( segments ) + table.Count( save ) < g_segments_to_assemble_queen then
-								table.Add( save, { v } )
+							if table.Count( m_Segments ) < g_segments_to_assemble_replicator then table.insert( m_Segments, v ) 
+							elseif table.Count( m_Segments ) + table.Count( m_Save ) < g_segments_to_assemble_queen then
+								table.insert( m_Save, v )
 								
-								if table.Count( segments ) + table.Count( save ) == g_segments_to_assemble_queen then
+								if table.Count( m_Segments ) + table.Count( m_Save ) == g_segments_to_assemble_queen then
 								
-									table.Add( segments, save )
-									self:SetVar( "rCraftingQueen", true )
+									table.Add( m_Segments, m_Save )
+									self.rCraftingQueen = true
 									
 								end
-								
 							end
 							
-						elseif v:GetVar( "rCraftingQueen" ) and table.Count( segments ) < g_segments_to_assemble_queen then table.Add( segments, { v } ) end
+						elseif v.rCraftingQueen and table.Count( m_Segments ) < g_segments_to_assemble_queen then table.insert( m_Segments, v ) end
 						
 					end
 				end
 				
-				if table.Count( segments ) == g_segments_to_assemble_replicator and not self:GetVar( "rCraftingQueen" ) or
-					table.Count( segments ) == g_segments_to_assemble_queen and self:GetVar( "rCraftingQueen" ) then
+				if table.Count( m_Segments ) == g_segments_to_assemble_replicator and not self.rCraftingQueen or
+					table.Count( m_Segments ) == g_segments_to_assemble_queen and self.rCraftingQueen then
 					
-					self:SetVar( "assembling", true )
-					self:SetVar( "assembling_segments", segments )
+					self.rAssembling = true
+					self.rAssemblingSegments = m_Segments
 					
-					local middle = Vector( 0, 0, 0 )
+					local m_Middle = Vector( 0, 0, 0 )
 					
-					for k, v in ipairs( segments ) do
+					for k, v in ipairs( m_Segments ) do
 					
-						middle = middle + v:GetPos()
-						if v != self then v:SetVar( "used", self ) end
+						m_Middle = m_Middle + v:GetPos()
+						if v != self then v.rUsed = self end
 						
 					end
 					
-					middle = ( middle / table.Count( segments ) )
+					m_Middle = ( m_Middle / table.Count( m_Segments ) )
 					
-					self:SetVar( "segments_middle", middle )
+					self.rSegmentsMiddle = m_Middle
 					self.rRadius = 0
 				end
 				
 			else
 			
-				//self:SetColor( Color( 255, 0, 255 ) )
 				self:NextThink( CurTime() + 0.1 )
 
-				local segments = self:GetVar( "assembling_segments" )
-				local middle = self:GetVar( "segments_middle" )
+				local m_Segments = self.rAssemblingSegments
+				local m_Middle = self.rSegmentsMiddle
 				
 				if self.rRadius < 300 then self.rRadius = self.rRadius + self.rRadius / 10 + 5 else self.rRadius = 300 end
 				
@@ -157,36 +146,40 @@ if SERVER then
 					
 				end
 
-				for k, v in ipairs( segments ) do
+				
+				for k, v in ipairs( m_Segments ) do
 
-					local vVel = v:GetVelocity()
-					
-					if v:GetPos():Distance( middle ) < self:GetVar( "rRadius" ) and vVel.z < 10 then
-					
-						local dir = ( middle - v:GetPos() )
-						dir = Vector( dir.x, dir.y, 0 )
+					if v:IsValid() then
 						
-						dir:Normalize()
-						dir = dir * math.min( 200, self.rRadius )
+						local m_vVel = v:GetVelocity()
 						
-						local phys = v:GetPhysicsObject()
-						phys:SetVelocity( Vector( dir.x, dir.y, vVel.z ))
-						phys:SetMaterial( "gmod_ice" )
+						if v:GetPos():Distance( m_Middle ) < self.rRadius and m_vVel.z < 10 then
 						
-						local t_Rad
+							local m_Dir = ( m_Middle - v:GetPos() )
+							m_Dir = Vector( m_Dir.x, m_Dir.y, 0 )
+							
+							m_Dir:Normalize()
+							m_Dir = m_Dir * math.min( 200, self.rRadius )
+							
+							local phys = v:GetPhysicsObject()
+							phys:SetVelocity( Vector( m_Dir.x, m_Dir.y, m_vVel.z ))
+							phys:SetMaterial( "gmod_ice" )
+							
+							local t_Rad = 0
 
-						if not self.rCraftingQueen then t_Rad = 5
-						else t_Rad = 10 end
-						
-						if v:GetPos():Distance( middle ) < t_Rad + math.Rand( 0, 5 ) then
-						
-							phys:EnableMotion( false )
-							phys:EnableCollisions( false )
+							if not self.rCraftingQueen then t_Rad = 5
+							else t_Rad = 10 end
+							
+							if v:GetPos():Distance( m_Middle ) < t_Rad + math.Rand( 0, 5 ) then
+							
+								phys:EnableMotion( false )
+								phys:EnableCollisions( false )
+								
+							end
+							
+							if v:GetPos():Distance( m_Middle ) <= t_Rad + 10 then inx = inx + 1 end
 							
 						end
-						
-						if v:GetPos():Distance( middle ) <= t_Rad + 10 then inx = inx + 1 end
-						
 					end
 				end
 				
@@ -195,47 +188,47 @@ if SERVER then
 				if not self.rCraftingQueen and inx == g_segments_to_assemble_replicator
 					or self.rCraftingQueen and inx == g_segments_to_assemble_queen then
 					
-					local ent
-					local t_Height
-					local t_AddTime
+					local m_Ent = Entity( 0 )
+					local t_Height = 0
+					local t_AddTime = 0
 					
 					if not self.rCraftingQueen then
 					
-						ent = ents.Create( "replicator_worker" )
+						m_Ent = ents.Create( "replicator_worker" )
 						t_Height = 6
 						t_AddTime = 0.5
 						
 					else
 					
-						ent = ents.Create( "replicator_queen" )
+						m_Ent = ents.Create( "replicator_queen" )
 						t_Height = 13
 						t_AddTime = 4
 						
 					end
 					
-					if ( !IsValid( ent ) ) then return end
+					if ( !IsValid( m_Ent ) ) then return end
 					
-					ent:SetOwner( self:GetOwner() )
-					ent:SetPos( middle + Vector( 0, 0, t_Height ) )
-					ent:SetAngles( Angle( 0, math.Rand( 0, 360 ), 0 ) )
-					ent:SetVar( "assemble", true )
-					ent:Spawn()
+					m_Ent:SetOwner( self:GetOwner() )
+					m_Ent:SetPos( m_Middle + Vector( 0, 0, t_Height ) )
+					m_Ent:SetAngles( Angle( 0, math.Rand( 0, 360 ), 0 ) )
+					m_Ent.rAssembling = true
+					m_Ent:Spawn()
 					
-				
-					for k, v in ipairs( segments ) do
+					for k, v in ipairs( m_Segments ) do
+					
 						local phys = v:GetPhysicsObject()
 						
 						phys:EnableMotion( false )
 						phys:EnableCollisions( false )
 						
-						v:Fire( "Kill", "", k / ( table.Count( segments ) / t_AddTime ) + math.Rand( 0, 0.25 ) + 1 )
-						v:SetVar( "used", v )
+						v:Fire( "Kill", "", k / ( table.Count( m_Segments ) / t_AddTime ) + math.Rand( 0, 0.25 ) + 1 )
+						v.rUsed = v
+						
 					end
 					
-					self:SetVar( "used", self )
-					//segments = {}
+					self.rUsed = self
+					
 				end
-				//*/
 			end
 		end
 

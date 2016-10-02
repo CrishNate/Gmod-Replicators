@@ -144,7 +144,7 @@ REPLICATOR.ReplicatorScanningResources = function( self )
 			v:WorldSpaceCenter(), m_Dir * v:GetModelRadius(),
 			g_ReplicatorNoCollideGroupWith )
 			
-			if m_Trace.MatType == MAT_METAL and v:IsValid() and not g_MetalPointsAsigned[ "_"..v:EntIndex() ] then AddMetalEntity( v ) end
+			if m_Trace.MatType == MAT_METAL and v:IsValid() and not g_MetalPointsAssigned[ v:EntIndex() ] then AddMetalEntity( v ) end
 			
 		elseif v:IsNPC() and !v.rNPCTarget then
 		
