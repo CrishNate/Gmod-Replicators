@@ -72,8 +72,8 @@ function ENT:Draw()
 		local dlight = DynamicLight( LocalPlayer():EntIndex() )
 		if ( dlight ) then
 			dlight.pos = pos
-			dlight.r = 255
-			dlight.g = 255
+			dlight.r = 150
+			dlight.g = 200
 			dlight.b = 255
 			dlight.brightness = 2
 			dlight.Decay = 10
@@ -102,7 +102,7 @@ function ENT:Draw()
 		emitter:Finish()
 		
 		render.SetColorMaterial()
-		render.DrawSphere( pos, effectTime / 100 * 12, 20, 20, Color( 255, 255, 255, 50 ) )
+		render.DrawSphere( pos, effectTime / 100 * 12, 20, 20, Color( 150, 200, 255, 50 ) )
 		
 	end
 	

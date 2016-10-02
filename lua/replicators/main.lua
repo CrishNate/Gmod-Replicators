@@ -219,13 +219,3 @@ REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos, ass
 	
 	self:Remove()
 end
-
-REPLICATOR.ReplicatorDrawDebug = function( self )
-	
-	net.Receive( "rDrawPoint", function() net.ReadEntity().cPoint = net.ReadVector() end )
-	render.DrawLine( self:GetPos(), self.cPoint, Color( 255, 255, 255 ), true )
-	
-	net.Receive( "rDrawpPoint", function() net.ReadEntity().pPoint = net.ReadVector() end )
-	render.DrawLine( self:GetPos(), self.pPoint, Color( 255, 255, 255 ), true )
-	
-end

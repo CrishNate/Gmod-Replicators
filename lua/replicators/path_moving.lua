@@ -189,8 +189,6 @@ REPLICATOR.CreatingPath = function( self, h_Ground )
 					local info, merge = AddPathPoint( t_pPoint, { h_PrevInfo }, h_Ground.Entity )
 					self.rPrevPointId = info
 					
-					net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
-					
 					timer.Start( "rRotateBack"..self:EntIndex() )
 
 				else
@@ -201,7 +199,6 @@ REPLICATOR.CreatingPath = function( self, h_Ground )
 					
 						local info, merge = AddPathPoint( self:GetPos(), { h_PrevInfo }, h_Ground.Entity )
 						self.rPrevPointId = info
-						net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
 
 						timer.Start( "rRotateBack"..self:EntIndex() )
 						
@@ -212,7 +209,6 @@ REPLICATOR.CreatingPath = function( self, h_Ground )
 			
 				local info, merge = AddPathPoint( t_pPoint, { } )
 				self.rPrevPointId = info
-				net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( g_PathPoints[ info.case ][ info.index ].pos ) net.Broadcast()
 				
 				timer.Start( "rRotateBack"..self:EntIndex() )
 				
@@ -221,7 +217,6 @@ REPLICATOR.CreatingPath = function( self, h_Ground )
 		elseif table.Count( h_Point ) > 0 and h_Point.pos:Distance( h_Ground.HitPos ) > 50 then
 		
 			self.rPrevPointId = { case = "", index = 0 }
-			net.Start( "debug_rDrawpPoint" ) net.WriteEntity( self ) net.WriteVector( Vector() ) net.Broadcast()
 
 		end
 		

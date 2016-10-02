@@ -104,7 +104,6 @@ REPLICATOR.ReplicatorWalking = function( replicatorType, self, h_Ground, h_Groun
 					end
 					
 					local JUANG = self:WorldToLocalAngles( ( self.rMoveTo - h_Phys:GetPos() ):Angle() ).y
-					net.Start( "debug_rDrawPoint" ) net.WriteEntity( self ) net.WriteVector( self.rMoveTo ) net.Broadcast()
 
 					h_AngleOffset = h_AngleOffset + Angle( 0, JUANG / 5, 0 )
 					h_Offset = h_Offset / math.max( math.abs( JUANG ) / 30, 1 )

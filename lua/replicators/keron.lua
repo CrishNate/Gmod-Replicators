@@ -7,7 +7,6 @@
 AddCSLuaFile()
 
 local m_ID = 0
-local m_DebugLink = { }
 
 hook.Add( "Initialize", "CNR_KeronInitialize", function( )
 
@@ -55,7 +54,6 @@ hook.Add( "PostCleanupMap", "CNR_Cleanup", function( )
 
 	g_PathPoints = { }
 	g_MetalPoints = { }
-	m_DebugLink = { }
 	g_DarkPoints = { }
 	g_MetalPointsAssigned = { }
 	g_Attackers = { }
@@ -638,12 +636,7 @@ if CLIENT then
 	function AddDarkPoint( _stringp, _pos )
 	
 		g_DarkPoints[ _stringp ] = { pos = _pos, used = false }
-		
-		net.Start( "rDark_points" )
-			net.WriteString( _stringp )
-			net.WriteVector( _pos )
-		net.SendToServer()
-		
+
 	end
 	
 end // CLIENT
@@ -656,7 +649,6 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 	net.Receive( "CNR_AddMetalPoint", function() g_MetalPoints[ net.ReadString() ] = net.ReadTable() end )
 	net.Receive( "CNR_AddMetalEntity", function() g_MetalPoints[ net.ReadInt( 16 ) ] = net.ReadTable() end )
 
-	net.Receive( "debug_keron_network", function() g_PathPoints = net.ReadTable() end )
 	for k, v in pairs( g_PathPoints ) do
 	
 		render.SetMaterial( Material( "models/wireframe" ) )
@@ -717,15 +709,4 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 			
 		end
 	end
-	
-
-	net.Receive( "debug_render_rerpl", function() m_DebugLink = net.ReadTable() end )
-	
-	for k, v in pairs( m_DebugLink ) do
-	
-		render.SetColorMaterial()
-		render.DrawBox( g_PathPoints[ v.case ][ v.index ].pos, Angle( 45, 45 ,45 ), -Vector( 1, 1, 1 ) * ( 1 + k / 100 ), Vector( 1, 1, 1 ) * ( 1 + k / 100 ), Color( 0, 0, 255 ), false ) 
-		
-	end
-	
 end )
