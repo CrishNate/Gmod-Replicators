@@ -278,8 +278,6 @@ end )
 			
 		end
 		
-		MsgC( Color( 255, 255, 0 ), "Doesn't founded closest ENT\n" )
-		
 		return {}, Entity( 0 )
 	end
 
@@ -356,8 +354,6 @@ end )
 
 			if k > 10000 then MsgC( Color( 255, 0, 0 ), "BREAK ERROR 1", "\n" ) break end
 		end
-
-		MsgC( Color( 255, 255, 0 ), "Doesn't founded closest index\n" )
 		
 		return {}, 0
 	end
@@ -453,8 +449,6 @@ end )
 			t_LinksHistory[ v.case ][ v.index ] = { }
 			
 		end
-
-		MsgC( Color( 255, 255, 0 ), "Doesn't founded closest Metal\n" )
 		
 		return {}, 0
 	end

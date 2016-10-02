@@ -313,6 +313,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 											end
 											
 											REPLICATOR.DissolveEntity( mPointInfo.ent )
+											g_MetalPoints[ mPointInfo.ent:EntIndex() ] = nil
 											g_MetalPointsAssigned[ mPointInfo.ent:EntIndex() ] = nil
 											
 										end
@@ -332,7 +333,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 								
 								if mPointInfo.ent then
 									
-									UpdateMetalEntity( g_MetalPoints[ t_TargetMetalId ].ent, t_TargetMetalAmount - m_Amount )
+									if mPointInfo.ent:IsValid() then UpdateMetalEntity( mPointInfo.ent, t_TargetMetalAmount - m_Amount ) end
 									
 								elseif mPointInfo.pos then
 								
