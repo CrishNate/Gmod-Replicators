@@ -102,7 +102,7 @@ function ENT:Draw()
 		emitter:Finish()
 		
 		render.SetColorMaterial()
-		render.DrawSphere( pos, effectTime / 100 * 12, 20, 20, Color( 150, 200, 255, 50 ) )
+		render.DrawSphere( pos, effectTime / 100 * 12, 20, 20, Color( 100, 150, 255, 50 ) )
 		
 	end
 	
