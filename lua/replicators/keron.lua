@@ -18,6 +18,8 @@ hook.Add( "Initialize", "CNR_KeronInitialize", function( )
 
 		util.AddNetworkString( "CNR_AddMetalPoint" )
 		util.AddNetworkString( "CNR_AddMetalEntity" )
+
+		util.AddNetworkString( "CNR_AddDarkPoints" )
 		
 		g_Replicator_entDissolver = ents.Create( "env_entity_dissolver" )
 		if not IsValid( g_Replicator_entDissolver ) then return end
@@ -593,7 +595,7 @@ end )
 
 if SERVER then
 
-	net.Receive( "rDark_points", function() g_DarkPoints[ net.ReadString() ] = { pos = net.ReadVector(), used = false } end )		
+	net.Receive( "CNR_AddDarkPoints", function() g_DarkPoints[ net.ReadString() ] = { pos = net.ReadVector(), used = false } end )		
 	
 end // SERVER
 
@@ -629,8 +631,12 @@ if CLIENT then
 
 	function AddDarkPoint( _stringp, _pos )
 	
-		g_DarkPoints[ _stringp ] = { pos = _pos, used = false }
-
+		net.Start( "CNR_AddDarkPoints" )
+			net.WriteString( _stringp )
+			net.WriteVector( _pos )
+		net.SendToServer()
+		
+		g_DarkPoints[ _stringp ] = true
 	end
 	
 end // CLIENT
@@ -642,37 +648,6 @@ hook.Add( "PostDrawTranslucentRenderables", "CNR_PDTRender", function()
 	
 	net.Receive( "CNR_AddMetalPoint", function() g_MetalPoints[ net.ReadString() ] = net.ReadTable() end )
 	net.Receive( "CNR_AddMetalEntity", function() g_MetalPoints[ net.ReadInt( 16 ) ] = net.ReadTable() end )
-
-	for k, v in pairs( g_PathPoints ) do
-	
-		render.SetMaterial( Material( "models/wireframe" ) )
-		
-		for k2, v2 in pairs( v ) do
-
-			render.SetColorMaterial()
-			if v2.ent then render.DrawBox( v2.pos, Angle( ), -Vector( 2, 2, 2 ), Vector( 2, 2, 2 ), Color( 255, 0, 0, 50 ), false ) 
-			else render.DrawBox( v2.pos, Angle( ), -Vector( 2, 2, 2 ), Vector( 2, 2, 2 ), Color( 255, 255, 255, 50 ), false ) end
-			
-			for k3, v3 in pairs( v2.connection ) do
-			
-				if g_PathPoints[ v3.case ] then
-
-					local p = g_PathPoints[ v3.case ][ v3.index ]
-					local vec = ( v2.pos - p.pos ):Angle()
-					
-					render.DrawLine( v2.pos + vec:Right() / 2, p.pos + vec:Right() / 2, Color( 255, 255, 255, 50 ), false )
-					
-				end				
-			end
-		end
-	end
-	
-	for k, v in pairs( g_DarkPoints ) do
-	
-		render.SetColorMaterial()
-		render.SetBlend( 1 )
-
-	end
 	
 	for k, v in pairs( g_MetalPoints ) do
 
