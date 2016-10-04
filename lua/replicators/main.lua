@@ -152,7 +152,7 @@ REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos, ass
 
 	local t_Count = 0
 	
-	if replicatorType == 1 then t_Count = (GetConVar("tr_replicators_blocks_multiplier"):GetFloat() * 30)
+	if replicatorType == 1 then t_Count = g_segments_to_assemble_replicator
 	elseif replicatorType == 2 then t_Count = g_segments_to_assemble_queen
 	end
 	
