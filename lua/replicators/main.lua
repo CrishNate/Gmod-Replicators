@@ -19,37 +19,6 @@ include( "replicators/walk.lua" )
 
 list.Add( "OverrideMaterials", "rust/rusty_paint" )
 
-concommand.Add( "tr_replicators_limit", function( ply, cmd, args )
-
-	g_replicator_limit = tonumber( agrs )
-	
-end )
-
-concommand.Add( "tr_replicators_collection_speed", function( ply, cmd, args )
-
-	g_replicator_collection_speed = tonumber( agrs )
-	
-end )
-
-concommand.Add( "tr_replicators_giving_speed", function( ply, cmd, args )
-
-	g_replicator_giving_speed = tonumber( agrs )
-	
-end )
-
-concommand.Add( "tr_replicators_dark_level", function( ply, cmd, args )
-
-	g_replicator_min_dark_level = tonumber( agrs )
-	
-end )
-
-concommand.Add( "tr_replicators_blocks_multiplier", function( ply, cmd, args )
-
-	g_segments_to_assemble_replicator 	= 30 * tonumber( agrs )
-	g_segments_to_assemble_queen 		= 90 * tonumber( agrs )
-
-end )
-
 REPLICATOR.ConvertToGrid = function( pos, size )
 
 	local t_Pos = pos / size
