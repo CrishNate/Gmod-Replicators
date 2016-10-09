@@ -39,7 +39,7 @@ hook.Add( "EntityTakeDamage", "CNR_GetDamaged", function( target, dmginfo )
 	
 		local h_Attacker = dmginfo:GetAttacker()
 		
-		if not g_Attackers[ "r"..h_Attacker:EntIndex() ] and ( ( h_Attacker:IsPlayer() and h_Attacker:Alive() ) or h_Attacker:IsNPC() ) then
+		if not g_Attackers[ "r"..h_Attacker:EntIndex() ] and ( ( (h_Attacker:IsPlayer() and (not h_Attacker:IsFlagSet(FL_NOTARGET))) and h_Attacker:Alive() ) or h_Attacker:IsNPC() ) then
 		
 			g_Attackers[ "r"..h_Attacker:EntIndex() ] = h_Attacker
 			target.rParentReplicator.rResearch = true
