@@ -226,7 +226,7 @@ REPLICATOR.ReplicatorWalkingAnimation = function( replicatorType, self, h_Move, 
 		
 		timer.Create( h_NameWalk, REPLICATOR.PlaySequence( self, "walk" ) / 2, 0, function()
 		
-			if self:IsValid() then self:EmitSound( "replicators/replicatorstep" .. math.random( 1, 4 ) .. ".wav", 65, 100 + math.Rand( -25, 25 ), 1, CHAN_AUTO ) end
+			if self:IsValid() then self:EmitSound("Replicator.Footstep") end
 			
 		end )
 		
@@ -240,7 +240,7 @@ REPLICATOR.ReplicatorWalkingAnimation = function( replicatorType, self, h_Move, 
 		
 		timer.Create( h_NameRun, REPLICATOR.PlaySequence( self, "run" ) / 2, 0, function()
 		
-			if self:IsValid() then self:EmitSound( "replicators/replicatorstep" .. math.random( 1, 4 ) .. ".wav", 65, 100 + math.Rand( -25, 25 ), 1, CHAN_AUTO ) end
+			if self:IsValid() then self:EmitSound("Replicator.Footstep") end
 			
 		end )
 		

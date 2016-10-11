@@ -51,7 +51,7 @@ if SERVER then
 	
 	function ENT:PhysicsCollide( data, phys )
 	
-		if data.Speed > 200 then self:EmitSound( "weapons/fx/tink/shotgun_shell"..math.random( 1, 3 )..".wav", 60, 175 + math.Rand( -25, 25 ), 1, CHAN_AUTO ) end
+		if data.Speed > 200 then self:EmitSound("Replicator.PhysicsCollide") end
 		
 	end
 	
@@ -138,8 +138,7 @@ if SERVER then
 
 				if not self.rAssebleSound then
 				
-					if not self.rCraftingQueen then self:EmitSound( "replicators/repassembling.wav", 60, 100 + math.Rand( 0, 10 ), 1, CHAN_AUTO )
-					else self:EmitSound( "replicators/repassembling.wav", 60, 70 + math.Rand( 0, 10 ), 1, CHAN_AUTO ) end
+					self:EmitSound(Either(self.rCraftingQueen, "Replicator.ReassambleQueen", "Replicator.Reassamble"))
 					self.rAssebleSound = true
 					
 				end

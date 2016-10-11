@@ -329,7 +329,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 
 							if mPointInfo and g_MetalPoints[ t_TargetMetalId ] then
 							
-								self:EmitSound( "acid/acid_spit.wav", 60, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
+								self:EmitSound("Replicator.AcidSpit")
 								
 								if mPointInfo.ent then
 									
@@ -655,7 +655,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 								if self.rMetalAmount >= 1 and table.Count( g_WorkersCount ) < g_replicator_limit then
 								
 									local m_Ent = ents.Create( "replicator_segment" )
-									self:EmitSound( "physics/metal/weapon_impact_soft" .. math.random( 1, 3 ) .. ".wav", 60, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
+									self:EmitSound("Replicator.Crafting")
 									
 									if ( !IsValid( m_Ent ) ) then return end
 									m_Ent:SetPos( self:GetPos() + self:GetForward() * 6 - self:GetUp() * 3 )

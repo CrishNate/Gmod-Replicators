@@ -184,7 +184,7 @@ REPLICATOR.ReplicatorBreak = function( replicatorType, self, damage, dmgpos, ass
 		
 	end
 	
-	h_Ent:EmitSound( "npc/manhack/gib.wav", 75, 150 + math.Rand( -25, 25 ), 1, CHAN_AUTO )
+	h_Ent:EmitSound("Replicator.Break")
 	
 	self:Remove()
 end
