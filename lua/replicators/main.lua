@@ -56,7 +56,7 @@ REPLICATOR.ReplicatorOnTakeDamage = function( replicatorType, self, dmginfo )
 	
 	self:SetHealth( self:Health() - h_Damage )
 
-	if not g_Attackers[ "r"..h_Attacker:EntIndex() ] and ( h_Attacker:IsNPC() or h_Attacker:IsPlayer() and h_Attacker:Alive() ) then
+	if not g_Attackers[ "r"..h_Attacker:EntIndex() ] and ( h_Attacker:IsNPC() or (h_Attacker:IsPlayer() and (not h_Attacker:IsFlagSet(FL_NOTARGET))) and h_Attacker:Alive() ) then
 	
 		g_Attackers[ "r"..h_Attacker:EntIndex() ] = h_Attacker
 		

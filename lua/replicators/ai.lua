@@ -522,7 +522,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 								self:SetCollisionGroup( COLLISION_GROUP_PASSABLE_DOOR )
 								timer.Remove( "rRefind"..self:EntIndex() )
 
-								if m_Target:IsPlayer() or m_Target:IsNPC() then self:SetParent( m_Target, 1 )
+								if (m_Target:IsPlayer() and (not m_Target:IsFlagSet(FL_NOTARGET))) or m_Target:IsNPC() then self:SetParent( m_Target, 1 )
 								else self:SetParent( m_Target, -1 ) end
 								
 							end
