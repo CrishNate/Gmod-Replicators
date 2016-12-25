@@ -11,6 +11,7 @@ REPLICATOR = { }
 include( "replicators/data.lua" )
 include( "replicators/keron.lua" )
 include( "replicators/collisions.lua" )
+include( "replicators/sound.lua" )
 
 include( "replicators/initialize.lua" )
 include( "replicators/ai.lua" )
@@ -39,6 +40,10 @@ end
 
 REPLICATOR.PlaySequence = function( self, seq )
 
+	if !self:IsValid() then
+		return
+	end
+	
 	local sequence = self:LookupSequence( seq )
 	self:ResetSequence( sequence )
 

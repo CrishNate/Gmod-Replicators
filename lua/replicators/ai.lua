@@ -237,7 +237,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 							local mPointInfo = g_MetalPoints[ t_TargetMetalId ]
 							local vPoint = Vector()
 
-							if mPointInfo.ent then
+							if mPointInfo and mPointInfo.ent then
 								
 								local t_Hegiht = 0
 								if replicatorType == 1 then t_Hegiht = 4 
@@ -263,7 +263,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 							local h_ModeStatus = self.rModeStatus
 							local m_Amount = g_replicator_collection_speed
 
-							if t_TargetMetalAmount < g_replicator_collection_speed then m_Amount = t_TargetMetalAmount end
+							if t_TargetMetalAmount and t_TargetMetalAmount < g_replicator_collection_speed then m_Amount = t_TargetMetalAmount end
 
 							if not (( m_MetalAmount + m_Amount ) < g_segments_to_assemble_replicator
 								or ( table.Count( g_QueenCount ) == 0 
@@ -330,7 +330,6 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 							if mPointInfo and g_MetalPoints[ t_TargetMetalId ] then
 							
 								self:EmitSound("Replicator.AcidSpit")
-								
 								if mPointInfo.ent then
 									
 									if mPointInfo.ent:IsValid() then UpdateMetalEntity( mPointInfo.ent, t_TargetMetalAmount - m_Amount ) end
@@ -522,7 +521,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 								self:SetCollisionGroup( COLLISION_GROUP_PASSABLE_DOOR )
 								timer.Remove( "rRefind"..self:EntIndex() )
 
-								if (m_Target:IsPlayer() and (not m_Target:IsFlagSet(FL_NOTARGET))) or m_Target:IsNPC() then self:SetParent( m_Target, 1 )
+								if m_Target:IsPlayer() or m_Target:IsNPC() then self:SetParent( m_Target, 1 )
 								else self:SetParent( m_Target, -1 ) end
 								
 							end
@@ -616,7 +615,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 			
 		// ===================== Crafting mode ======================
 		elseif h_Mode == 4 then
-		
+
 			if h_ModeStatus == 1 then
 			
 				local m_DarkId = self.rTargetDarkId
@@ -625,7 +624,7 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 				else self.rMoveMode = 1 end
 
 				if g_DarkPoints[ m_DarkId ].pos:Distance( h_Ground.HitPos ) < 10 then
-					
+				
 					timer.Remove( "rWalking" .. self:EntIndex() )
 					timer.Remove( "rRun" .. self:EntIndex() )
 					timer.Remove( "rRefind"..self:EntIndex() )
@@ -634,56 +633,59 @@ REPLICATOR.ReplicatorAI = function( replicatorType, self  )
 					
 					self.rMove 			= false
 					self.rMoveStep		= 0
-					self.rModeStatus	= 2
-					
-					timer.Simple( REPLICATOR.PlaySequence( self, "crafting_start" ), function()
-					
-						// IF QUEEN
-						if replicatorType == 2 then
-						
-							g_QueenCount[ self:EntIndex() ] = self
-							g_WorkersCount[ self:EntIndex() ] = nil
-							
-							net.Start( "rDrawStorageEffect" ) net.WriteEntity( self ) net.Broadcast()
-							
-						end
-						
-						timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ), 0, function()
-						
-							if self:IsValid() then
-							
-								if self.rMetalAmount >= 1 and table.Count( g_WorkersCount ) < g_replicator_limit then
-								
-									local m_Ent = ents.Create( "replicator_segment" )
-									self:EmitSound("Replicator.Crafting")
-									
-									if ( !IsValid( m_Ent ) ) then return end
-									m_Ent:SetPos( self:GetPos() + self:GetForward() * 6 - self:GetUp() * 3 )
-									m_Ent:SetAngles( AngleRand() )
-									m_Ent:SetOwner( self:GetOwner() )
-									m_Ent:Spawn()
-									
-									if replicatorType == 1 then m_Ent.rCraftingQueen = true end
-									
-									local h_Phys = m_Ent:GetPhysicsObject()
-									h_Phys:Wake()
-									h_Phys:SetVelocity( VectorRand() * 40 + self:GetForward() * 60 )	
-									
-									self.rMetalAmount = self.rMetalAmount - 1
-									
-								elseif replicatorType != 2 then
-								
-									// ====================== Self Destruction ======================
+					self.rModeStatus	= 2 h_ModeStatus = 2
 
-									g_DarkPoints[ m_DarkId ].used = false
-									
-									REPLICATOR.ReplicatorBreak( replicatorType, self, 10, self:WorldToLocal( Vector() ), true )
-									
-								end
-							end
-						end )
-					end )
 				end
+			end
+			
+			if h_ModeStatus == 2 then
+				
+				timer.Simple( REPLICATOR.PlaySequence( self, "crafting_start" ), function()
+				
+					// IF QUEEN
+					if replicatorType == 2 then
+					
+						g_QueenCount[ self:EntIndex() ] = self
+						g_WorkersCount[ self:EntIndex() ] = nil
+						net.Start( "CNR_RDrawStorageEffect" ) net.WriteEntity( self ) net.Broadcast()
+						self.rModeStatus = 3
+					end
+					
+					timer.Create( "rCrafting" .. self:EntIndex(), REPLICATOR.PlaySequence( self, "crafting" ), 0, function()
+					
+						if self:IsValid() then
+						
+							if self.rMetalAmount and self.rMetalAmount >= 1 
+								and g_WorkersCount and table.Count( g_WorkersCount ) < g_replicator_limit then
+							
+								local m_Ent = ents.Create( "replicator_segment" )
+								self:EmitSound("Replicator.Crafting")									
+								if ( !IsValid( m_Ent ) ) then return end
+								m_Ent:SetPos( self:GetPos() + self:GetForward() * 6 - self:GetUp() * 3 )
+								m_Ent:SetAngles( AngleRand() )
+								m_Ent:SetOwner( self:GetOwner() )
+								m_Ent:Spawn()
+								
+								if replicatorType == 1 then m_Ent.rCraftingQueen = true end
+								
+								local h_Phys = m_Ent:GetPhysicsObject()
+								h_Phys:Wake()
+								h_Phys:SetVelocity( VectorRand() * 40 + self:GetForward() * 60 )	
+								
+								self.rMetalAmount = self.rMetalAmount - 1
+								
+							elseif replicatorType != 2 then
+							
+								// ====================== Self Destruction ======================
+
+								g_DarkPoints[ m_DarkId ].used = false
+								
+								REPLICATOR.ReplicatorBreak( replicatorType, self, 10, self:WorldToLocal( Vector() ), true )
+								
+							end
+						end
+					end )
+				end )
 			end
 		end
 	end

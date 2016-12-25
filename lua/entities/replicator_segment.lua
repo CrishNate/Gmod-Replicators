@@ -67,7 +67,7 @@ if SERVER then
 	
 	function ENT:Think()
 	
-		if( !self.rUsed:IsValid() ) then
+		if( !self.rUsed or self.rUsed and !self.rUsed:IsValid() ) then
 
 			if( !self.rAssembling ) then
 			

@@ -18,6 +18,8 @@ hook.Add( "Initialize", "CNR_KeronInitialize", function( )
 
 		util.AddNetworkString( "CNR_AddMetalPoint" )
 		util.AddNetworkString( "CNR_AddMetalEntity" )
+		
+		util.AddNetworkString( "CNR_RDrawStorageEffect" )
 
 		util.AddNetworkString( "CNR_AddDarkPoints" )
 		
@@ -39,7 +41,7 @@ hook.Add( "EntityTakeDamage", "CNR_GetDamaged", function( target, dmginfo )
 	
 		local h_Attacker = dmginfo:GetAttacker()
 		
-		if not g_Attackers[ "r"..h_Attacker:EntIndex() ] and ( ( (h_Attacker:IsPlayer() and (not h_Attacker:IsFlagSet(FL_NOTARGET))) and h_Attacker:Alive() ) or h_Attacker:IsNPC() ) then
+		if not g_Attackers[ "r"..h_Attacker:EntIndex() ] and ( ( h_Attacker:IsPlayer() and h_Attacker:Alive() ) or h_Attacker:IsNPC() ) then
 		
 			g_Attackers[ "r"..h_Attacker:EntIndex() ] = h_Attacker
 			target.rParentReplicator.rResearch = true
@@ -479,6 +481,10 @@ end )
 		
 	function AddMetalEntity( _ent )
 
+		if not _ent:IsValid() then
+			return
+		end
+	
 		local _amount = ( _ent:GetModelRadius() * _ent:GetPhysicsObject():GetMass() ) / 100
 		
 		g_MetalPoints[ _ent:EntIndex() ] = { ent = _ent, amount = _amount }
